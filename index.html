@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PTC Gauge Cluster • Comms Counter</title>
+  <title>PTC Gauge Cluster • Live Comms Telemetry</title>
   <link rel="stylesheet" href="styles.css" />
 
-  <!-- MSAL (Microsoft) for browser-based Entra sign-in -->
+  <!-- MSAL for Entra sign-in (browser SPA) -->
   <script defer src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
   <script defer src="app.js"></script>
 </head>
@@ -17,7 +17,7 @@
       <div class="logo">PTC</div>
       <div class="titles">
         <div class="title">Gauge Cluster</div>
-        <div class="subtitle">Counts only • No message content</div>
+        <div class="subtitle">Counts only • No message content • Live telemetry</div>
       </div>
     </div>
 
@@ -38,103 +38,108 @@
       <div class="statusItem"><span class="label">Mode</span><span id="mode">IDLE</span></div>
     </section>
 
-    <!-- Warning lights row (purely numeric indicators) -->
     <section class="lights">
-      <div class="light" data-light="outlook">
-        <div class="bulb"></div><div class="lightLabel">OUTLOOK</div>
-      </div>
-      <div class="light" data-light="slack">
-        <div class="bulb"></div><div class="lightLabel">SLACK</div>
-      </div>
-      <div class="light" data-light="hubspot">
-        <div class="bulb"></div><div class="lightLabel">HUBSPOT</div>
-      </div>
-      <div class="light" data-light="monday">
-        <div class="bulb"></div><div class="lightLabel">MONDAY</div>
-      </div>
-      <div class="light danger" data-light="check">
-        <div class="bulb"></div><div class="lightLabel">CHECK</div>
-      </div>
+      <div class="light" data-light="outlook"><div class="bulb"></div><div class="lightLabel">OUTLOOK</div></div>
+      <div class="light" data-light="slack"><div class="bulb"></div><div class="lightLabel">SLACK</div></div>
+      <div class="light" data-light="hubspot"><div class="bulb"></div><div class="lightLabel">HUBSPOT</div></div>
+      <div class="light" data-light="monday"><div class="bulb"></div><div class="lightLabel">MONDAY</div></div>
+      <div class="light danger" data-light="check"><div class="bulb"></div><div class="lightLabel">CHECK</div></div>
     </section>
 
-    <!-- Cluster -->
-    <section class="cluster">
-      <!-- Center speedometer = TOTAL -->
-      <div class="gauge gauge--big" id="g_total" data-key="total">
-        <div class="ring">
-          <div class="gaugeTicks"></div>
-          <div class="dialFace"></div>
-          <div class="needle"></div>
-          <div class="hub"></div>
+    <section class="clusterV2">
+      <!-- LEFT COLUMN: 2 waves -->
+      <div class="col">
+        <div class="waveCard" data-key="outlook" id="w_outlook">
+          <div class="waveTop">
+            <div class="waveName">OUTLOOK</div>
+            <div class="waveNums">
+              <div class="bigNum" id="val_outlook">—</div>
+              <div class="delta" id="meta_outlook">Since baseline: —</div>
+            </div>
+          </div>
+          <div class="waveCanvasWrap">
+            <canvas class="waveCanvas" id="cv_outlook"></canvas>
+            <div class="scanline"></div>
+          </div>
         </div>
 
-        <div class="gaugeCenter">
-          <div class="gaugeName">TOTAL</div>
-          <div class="gaugeValue" id="val_total">—</div>
-          <div class="gaugeMeta" id="meta_total">New since baseline: —</div>
-        </div>
-
-        <div class="ticks">
-          <span class="tickLabel left">IDLE</span>
-          <span class="tickLabel mid">BUSY</span>
-          <span class="tickLabel right">REDLINE</span>
+        <div class="waveCard" data-key="slack" id="w_slack">
+          <div class="waveTop">
+            <div class="waveName">SLACK</div>
+            <div class="waveNums">
+              <div class="bigNum" id="val_slack">—</div>
+              <div class="delta" id="meta_slack">Since baseline: —</div>
+            </div>
+          </div>
+          <div class="waveCanvasWrap">
+            <canvas class="waveCanvas" id="cv_slack"></canvas>
+            <div class="scanline"></div>
+          </div>
         </div>
       </div>
 
-      <!-- 4 program gauges around it -->
-      <div class="gauge" id="g_outlook" data-key="outlook">
-        <div class="ring">
-          <div class="gaugeTicks"></div>
-          <div class="dialFace"></div>
-          <div class="needle"></div>
-          <div class="hub"></div>
+      <!-- CENTER: TOTAL gauge -->
+      <div class="center">
+        <div class="gauge gauge--big" id="g_total" data-key="total">
+          <div class="ring|">
+            <!-- NOTE: the '|' is ignored by browsers, but if you prefer remove it -->
+          </div>
+
+          <div class="ring">
+            <div class="gaugeTicks"></div>
+            <div class="dialFace"></div>
+            <div class="needle"></div>
+            <div class="hub"></div>
+          </div>
+
+          <div class="gaugeCenter">
+            <div class="gaugeName">TOTAL</div>
+            <div class="gaugeValue" id="val_total">—</div>
+            <div class="gaugeMeta" id="meta_total">New since baseline: —</div>
+          </div>
+
+          <div class="ticks">
+            <span class="tickLabel left">IDLE</span>
+            <span class="tickLabel mid">BUSY</span>
+            <span class="tickLabel right">REDLINE</span>
+          </div>
         </div>
-        <div class="gaugeCenter">
-          <div class="gaugeName">OUTLOOK</div>
-          <div class="gaugeValue" id="val_outlook">—</div>
-          <div class="gaugeMeta" id="meta_outlook">Since baseline: —</div>
+
+        <div class="microStats">
+          <div class="chip"><span class="chipLabel">Poll</span><span class="chipVal" id="pollState">IDLE</span></div>
+          <div class="chip"><span class="chipLabel">API</span><span class="chipVal" id="apiMs">—</span></div>
+          <div class="chip"><span class="chipLabel">Wave</span><span class="chipVal">LIVE</span></div>
         </div>
       </div>
 
-      <div class="gauge" id="g_slack" data-key="slack">
-        <div class="ring">
-          <div class="gaugeTicks"></div>
-          <div class="dialFace"></div>
-          <div class="needle"></div>
-          <div class="hub"></div>
+      <!-- RIGHT COLUMN: 2 waves -->
+      <div class="col">
+        <div class="waveCard" data-key="hubspot" id="w_hubspot">
+          <div class="waveTop">
+            <div class="waveName">HUBSPOT</div>
+            <div class="waveNums">
+              <div class="bigNum" id="val_hubspot">—</div>
+              <div class="delta" id="meta_hubspot">Since baseline: —</div>
+            </div>
+          </div>
+          <div class="waveCanvasWrap">
+            <canvas class="waveCanvas" id="cv_hubspot"></canvas>
+            <div class="scanline"></div>
+          </div>
         </div>
-        <div class="gaugeCenter">
-          <div class="gaugeName">SLACK</div>
-          <div class="gaugeValue" id="val_slack">—</div>
-          <div class="gaugeMeta" id="meta_slack">Since baseline: —</div>
-        </div>
-      </div>
 
-      <div class="gauge" id="g_hubspot" data-key="hubspot">
-        <div class="ring">
-          <div class="gaugeTicks"></div>
-          <div class="dialFace"></div>
-          <div class="needle"></div>
-          <div class="hub"></div>
-        </div>
-        <div class="gaugeCenter">
-          <div class="gaugeName">HUBSPOT</div>
-          <div class="gaugeValue" id="val_hubspot">—</div>
-          <div class="gaugeMeta" id="meta_hubspot">Since baseline: —</div>
-        </div>
-      </div>
-
-      <div class="gauge" id="g_monday" data-key="monday">
-        <div class="ring">
-          <div class="gaugeTicks"></div>
-          <div class="dialFace"></div>
-          <div class="needle"></div>
-          <div class="hub"></div>
-        </div>
-        <div class="gaugeCenter">
-          <div class="gaugeName">MONDAY</div>
-          <div class="gaugeValue" id="val_monday">—</div>
-          <div class="gaugeMeta" id="meta_monday">Since baseline: —</div>
+        <div class="waveCard" data-key="monday" id="w_monday">
+          <div class="waveTop">
+            <div class="waveName">MONDAY</div>
+            <div class="waveNums">
+              <div class="bigNum" id="val_monday">—</div>
+              <div class="delta" id="meta_monday">Since baseline: —</div>
+            </div>
+          </div>
+          <div class="waveCanvasWrap">
+            <canvas class="waveCanvas" id="cv_monday"></canvas>
+            <div class="scanline"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -150,7 +155,7 @@
       <div class="noteTitle">How “web-page only” works</div>
       <div class="noteBody">
         This dashboard reads <b>folder unread counts</b> from Outlook (Inbox + your “Alerts” folders). It never reads message bodies.
-        To make Slack/HubSpot/Monday count-only on a pure static site, route their notification emails into Outlook folders.
+        Slack/HubSpot/Monday become count-only by routing their notification emails into Outlook folders.
       </div>
     </section>
   </main>
