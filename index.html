@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PTC Gauge Cluster • Comms Counter</title>
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- MSAL (Microsoft) for browser-based Entra sign-in -->
+  <script defer src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
+  <script defer src="app.js"></script>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">PTC</div>
+      <div class="titles">
+        <div class="title">Gauge Cluster</div>
+        <div class="subtitle">Counts only • No message content</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="btnIgnition" class="btn primary">IGNITION</button>
+      <button id="btnRefresh" class="btn" disabled>REFRESH</button>
+      <button id="btnBaseline" class="btn" disabled>TRIP RESET</button>
+      <button id="btnAuto" class="btn" disabled>AUTO: OFF</button>
+      <button id="btnSignOut" class="btn" disabled>SIGN OUT</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="statusBar">
+      <div class="statusItem"><span class="label">Driver</span><span id="driver">—</span></div>
+      <div class="statusItem"><span class="label">Last Update</span><span id="lastUpdate">—</span></div>
+      <div class="statusItem"><span class="label">Baseline</span><span id="baselineTime">—</span></div>
+      <div class="statusItem"><span class="label">Mode</span><span id="mode">IDLE</span></div>
+    </section>
+
+    <!-- Warning lights row (purely numeric indicators) -->
+    <section class="lights">
+      <div class="light" data-light="outlook">
+        <div class="bulb"></div><div class="lightLabel">OUTLOOK</div>
+      </div>
+      <div class="light" data-light="slack">
+        <div class="bulb"></div><div class="lightLabel">SLACK</div>
+      </div>
+      <div class="light" data-light="hubspot">
+        <div class="bulb"></div><div class="lightLabel">HUBSPOT</div>
+      </div>
+      <div class="light" data-light="monday">
+        <div class="bulb"></div><div class="lightLabel">MONDAY</div>
+      </div>
+      <div class="light danger" data-light="check">
+        <div class="bulb"></div><div class="lightLabel">CHECK</div>
+      </div>
+    </section>
+
+    <!-- Cluster -->
+    <section class="cluster">
+      <!-- Center speedometer = TOTAL -->
+      <div class="gauge gauge--big" id="g_total" data-key="total">
+        <div class="ring">
+          <div class="needle"></div>
+          <div class="hub"></div>
+        </div>
+
+        <div class="gaugeCenter">
+          <div class="gaugeName">TOTAL</div>
+          <div class="gaugeValue" id="val_total">—</div>
+          <div class="gaugeMeta" id="meta_total">New since baseline: —</div>
+        </div>
+
+        <div class="ticks">
+          <span class="tickLabel left">IDLE</span>
+          <span class="tickLabel mid">BUSY</span>
+          <span class="tickLabel right">REDLINE</span>
+        </div>
+      </div>
+
+      <!-- 4 program gauges around it -->
+      <div class="gauge" id="g_outlook" data-key="outlook">
+        <div class="ring">
+          <div class="needle"></div>
+          <div class="hub"></div>
+        </div>
+        <div class="gaugeCenter">
+          <div class="gaugeName">OUTLOOK</div>
+          <div class="gaugeValue" id="val_outlook">—</div>
+          <div class="gaugeMeta" id="meta_outlook">Since baseline: —</div>
+        </div>
+      </div>
+
+      <div class="gauge" id="g_slack" data-key="slack">
+        <div class="ring">
+          <div class="needle"></div>
+          <div class="hub"></div>
+        </div>
+        <div class="gaugeCenter">
+          <div class="gaugeName">SLACK</div>
+          <div class="gaugeValue" id="val_slack">—</div>
+          <div class="gaugeMeta" id="meta_slack">Since baseline: —</div>
+        </div>
+      </div>
+
+      <div class="gauge" id="g_hubspot" data-key="hubspot">
+        <div class="ring">
+          <div class="needle"></div>
+          <div class="hub"></div>
+        </div>
+        <div class="gaugeCenter">
+          <div class="gaugeName">HUBSPOT</div>
+          <div class="gaugeValue" id="val_hubspot">—</div>
+          <div class="gaugeMeta" id="meta_hubspot">Since baseline: —</div>
+        </div>
+      </div>
+
+      <div class="gauge" id="g_monday" data-key="monday">
+        <div class="ring">
+          <div class="needle"></div>
+          <div class="hub"></div>
+        </div>
+        <div class="gaugeCenter">
+          <div class="gaugeName">MONDAY</div>
+          <div class="gaugeValue" id="val_monday">—</div>
+          <div class="gaugeMeta" id="meta_monday">Since baseline: —</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="linksRow">
+      <a class="pill" id="link_outlook" target="_blank" rel="noreferrer">Open Outlook</a>
+      <a class="pill" id="link_slack" target="_blank" rel="noreferrer">Open Slack</a>
+      <a class="pill" id="link_hubspot" target="_blank" rel="noreferrer">Open HubSpot</a>
+      <a class="pill" id="link_monday" target="_blank" rel="noreferrer">Open Monday</a>
+    </section>
+
+    <section class="footerNote">
+      <div class="noteTitle">How “web-page only” works</div>
+      <div class="noteBody">
+        This dashboard reads <b>folder unread counts</b> from Outlook (Inbox + your “Alerts” folders). It never reads message bodies.
+        To make Slack/HubSpot/Monday count-only on a pure static site, route their notification emails into Outlook folders.
+      </div>
+    </section>
+  </main>
+</body>
+</html>
