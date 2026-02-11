@@ -1,13 +1,8 @@
-/* =========================
-   styles.css (REPLACE WHOLE FILE)
-   ========================= */
-
 :root{
   --bg0:#070910;
   --bg1:#0c1020;
   --text: rgba(255,255,255,0.92);
   --muted: rgba(255,255,255,0.68);
-  --stroke: rgba(255,255,255,0.10);
   --radius: 18px;
 
   --neon: #60a5ff;
@@ -122,22 +117,16 @@ body{
 }
 .lightLabel{ font-weight:1000; letter-spacing:0.8px; font-size:12px; }
 
-/* ===== Layout ===== */
-.clusterV3{
-  display:flex;
-  flex-direction:column;
-  gap: 14px;
-}
-
+/* Layout */
+.clusterV3{ display:flex; flex-direction:column; gap: 14px; }
 .totalPanel{ display:flex; flex-direction:column; gap:12px; }
-
 .wavesGrid{
   display:grid;
   grid-template-columns: repeat(2, minmax(0,1fr));
   gap: 14px;
 }
 
-/* ===== Chips ===== */
+/* Chips */
 .microStats{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
 .chip{
   padding: 8px 10px;
@@ -155,7 +144,7 @@ body{
 }
 .chipVal{ font-weight: 1000; color: rgba(255,255,255,0.92); }
 
-/* ===== Links ===== */
+/* Links */
 .linksRow{ display:flex; gap:10px; flex-wrap:wrap; margin-top: 10px; }
 .pill{
   display:inline-flex; align-items:center; gap:10px;
@@ -170,7 +159,7 @@ body{
 }
 .pill:hover{ background: rgba(255,255,255,0.06); transform: translateY(-1px); }
 
-/* ===== Footer ===== */
+/* Footer */
 .footerNote{
   margin-top: 12px;
   padding: 12px 14px;
@@ -184,9 +173,7 @@ body{
 }
 .noteBody{ margin-top:6px; color: rgba(255,255,255,0.70); font-size:13px; line-height:1.35; }
 
-/* ==========================================================
-   TOTAL GAUGE — Enterprise arc + glow + needle
-   ========================================================== */
+/* TOTAL gauge */
 .gauge{
   --pct: 0.0;
   --angle: -120deg;
@@ -209,18 +196,6 @@ body{
   overflow:hidden;
   min-height: 360px;
 }
-.gauge::after{
-  content:"";
-  position:absolute; inset:-1px;
-  border-radius: var(--radius);
-  pointer-events:none;
-  background:
-    radial-gradient(120% 120% at 18% 10%, rgba(255,255,255,0.14), transparent 44%),
-    linear-gradient(135deg, rgba(255,255,255,0.08), transparent 45%),
-    linear-gradient(0deg, rgba(255,255,255,0.05), rgba(255,255,255,0.00));
-  opacity: 0.55;
-  mix-blend-mode: screen;
-}
 .ring{
   position: relative;
   width: 100%;
@@ -238,7 +213,6 @@ body{
   background: conic-gradient(from var(--arcStart), var(--track) var(--arcSpan), transparent 0);
   -webkit-mask: radial-gradient(circle, transparent 64%, #000 65%);
   mask: radial-gradient(circle, transparent 64%, #000 65%);
-  filter: drop-shadow(0 0 24px rgba(0,0,0,0.64));
 }
 .ring::after{
   content:"";
@@ -260,7 +234,6 @@ body{
   background: conic-gradient(from var(--arcStart), rgba(255,255,255,0.22) 0 1deg, transparent 1deg 9deg);
   -webkit-mask: radial-gradient(circle, transparent 70%, #000 71%);
   mask: radial-gradient(circle, transparent 70%, #000 71%);
-  filter: drop-shadow(0 0 12px rgba(0,0,0,0.55));
 }
 .dialFace{
   position:absolute;
@@ -280,18 +253,7 @@ body{
   border-radius: 999px;
   transform-origin: 50% 86%;
   transform: rotate(var(--angle)) translateY(-28px);
-  box-shadow: 0 0 18px rgba(255,255,255,0.14), 0 0 34px rgba(0,0,0,0.35);
   transition: transform 420ms cubic-bezier(.2,1.0,.2,1.0);
-}
-.needle::after{
-  content:"";
-  position:absolute;
-  top:-6px; left:50%;
-  transform: translateX(-50%);
-  width:7px; height:7px;
-  border-radius:999px;
-  background: rgba(255,255,255,0.92);
-  box-shadow: 0 0 18px rgba(255,255,255,0.26);
 }
 .hub{
   position:absolute;
@@ -301,9 +263,7 @@ body{
     radial-gradient(circle at 30% 30%, rgba(255,255,255,0.35), rgba(255,255,255,0.10) 40%, rgba(0,0,0,0.30) 70%),
     rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.18);
-  box-shadow: 0 0 28px rgba(0,0,0,0.60), inset 0 0 18px rgba(0,0,0,0.60);
 }
-
 .gaugeCenter{
   position:absolute; inset:0;
   display:flex; flex-direction:column;
@@ -323,7 +283,6 @@ body{
   font-weight: 1000;
   font-size: 72px;
   letter-spacing: 0.8px;
-  text-shadow: 0 2px 18px rgba(0,0,0,0.60);
 }
 .gaugeMeta{
   font-size: 12px;
@@ -342,145 +301,12 @@ body{
   text-transform: uppercase;
 }
 
-/* ==========================================================
-   WAVES — Enterprise flatline + spike-on-refresh look
-   ========================================================== */
+/* Waves */
 .waveCard{
   --accent: #60a5ff;
-
   position:relative;
   border-radius: var(--radius);
   border: 1px solid rgba(255,255,255,0.10);
   background:
     linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)),
-    radial-gradient(1000px 260px at 18% 10%, rgba(255,255,255,0.06), transparent 55%),
-    rgba(12, 14, 22, 0.72);
-  box-shadow: 0 26px 86px rgba(0,0,0,0.55);
-  padding: 14px;
-  overflow:hidden;
-}
-
-.waveCard[data-key="outlook"]{ --accent: #60a5ff; }
-.waveCard[data-key="slack"]{  --accent: #a78bfa; }
-.waveCard[data-key="hubspot"]{--accent: #ffcc66; }
-.waveCard[data-key="monday"]{ --accent: #5eead4; }
-
-.waveCard::before{
-  content:"";
-  position:absolute; inset:0;
-  pointer-events:none;
-  opacity: 0.10;
-  background:
-    repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 7px),
-    radial-gradient(900px 280px at 18% 18%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 55%);
-}
-
-.waveTop{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap: 10px;
-  margin-bottom: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-}
-
-.waveName{
-  font-size: 15px;
-  letter-spacing: 1.6px;
-  text-transform: uppercase;
-  font-weight: 1000;
-  display:flex;
-  align-items:center;
-  gap:10px;
-  opacity: 0.92;
-}
-.waveName::before{
-  content:"";
-  width:10px;
-  height:10px;
-  border-radius:999px;
-  background: var(--accent);
-  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 55%, transparent);
-  opacity: 0.85;
-}
-
-.waveNums{
-  display:flex;
-  flex-direction:column;
-  align-items:flex-end;
-  gap:2px;
-}
-.bigNum{
-  font-weight: 1000;
-  font-size: 44px;
-  line-height: 1;
-  letter-spacing: 0.6px;
-  text-shadow: 0 2px 18px rgba(0,0,0,0.60);
-}
-.delta{
-  font-weight: 900;
-  color: rgba(255,255,255,0.70);
-  font-size: 12px;
-  letter-spacing: 0.6px;
-  text-align:right;
-}
-
-.waveCanvasWrap{
-  position:relative;
-  height: 170px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.09);
-  background:
-    radial-gradient(900px 240px at 18% 20%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
-    rgba(0,0,0,0.32);
-  overflow:hidden;
-}
-
-.waveCanvasWrap::before{
-  content:"";
-  position:absolute; inset:0;
-  pointer-events:none;
-  opacity: 0.10;
-  background:
-    linear-gradient(to right, rgba(255,255,255,0.10) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255,255,255,0.10) 1px, transparent 1px);
-  background-size: 30px 30px;
-}
-
-.waveCanvasWrap::after{
-  content:"";
-  position:absolute; inset:-2px;
-  pointer-events:none;
-  background:
-    radial-gradient(90% 70% at 50% 50%, transparent 55%, rgba(0,0,0,0.55)),
-    linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 16%, transparent), transparent);
-  opacity: 0.35;
-  mix-blend-mode: screen;
-  transform: translateX(-120%);
-  animation: beam 2.6s linear infinite;
-}
-@keyframes beam{
-  0%   { transform: translateX(-120%); }
-  100% { transform: translateX(120%); }
-}
-
-.waveCanvas{
-  width:100%;
-  height:100%;
-  display:block;
-}
-
-.waveCard.pulse{
-  animation: pulseGlow 520ms ease;
-}
-@keyframes pulseGlow{
-  0%{ border-color: rgba(255,255,255,0.10); }
-  55%{ border-color: color-mix(in srgb, var(--accent) 55%, rgba(255,255,255,0.10)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent) inset, 0 0 55px color-mix(in srgb, var(--accent) 22%, transparent), 0 26px 86px rgba(0,0,0,0.55); }
-  100%{ border-color: rgba(255,255,255,0.10); }
-}
-
-@media (max-width: 920px){
-  .wavesGrid{ grid-template-columns: 1fr; }
-  .statusBar{ grid-template-columns: 1fr 1fr; }
-}
+    radial-gradient(1000px 260px at 18% 10%, rgba(255,255,255,0.06),
