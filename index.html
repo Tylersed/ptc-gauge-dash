@@ -46,45 +46,11 @@
       <div class="light danger" data-light="check"><div class="bulb"></div><div class="lightLabel">CHECK</div></div>
     </section>
 
-    <section class="clusterV2">
-      <!-- LEFT COLUMN: 2 waves -->
-      <div class="col">
-        <div class="waveCard" data-key="outlook" id="w_outlook">
-          <div class="waveTop">
-            <div class="waveName">OUTLOOK</div>
-            <div class="waveNums">
-              <div class="bigNum" id="val_outlook">—</div>
-              <div class="delta" id="meta_outlook">Since baseline: —</div>
-            </div>
-          </div>
-          <div class="waveCanvasWrap">
-            <canvas class="waveCanvas" id="cv_outlook"></canvas>
-            <div class="scanline"></div>
-          </div>
-        </div>
-
-        <div class="waveCard" data-key="slack" id="w_slack">
-          <div class="waveTop">
-            <div class="waveName">SLACK</div>
-            <div class="waveNums">
-              <div class="bigNum" id="val_slack">—</div>
-              <div class="delta" id="meta_slack">Since baseline: —</div>
-            </div>
-          </div>
-          <div class="waveCanvasWrap">
-            <canvas class="waveCanvas" id="cv_slack"></canvas>
-            <div class="scanline"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- CENTER: TOTAL gauge -->
-      <div class="center">
+    <!-- MAIN: center gauge + 4 oscilloscope waves -->
+    <section class="clusterV3">
+      <!-- TOP: TOTAL gauge -->
+      <div class="totalPanel">
         <div class="gauge gauge--big" id="g_total" data-key="total">
-          <div class="ring|">
-            <!-- NOTE: the '|' is ignored by browsers, but if you prefer remove it -->
-          </div>
-
           <div class="ring">
             <div class="gaugeTicks"></div>
             <div class="dialFace"></div>
@@ -106,14 +72,40 @@
         </div>
 
         <div class="microStats">
-          <div class="chip"><span class="chipLabel">Poll</span><span class="chipVal" id="pollState">IDLE</span></div>
+          <div class="chip"><span class="chipLabel">POLL</span><span class="chipVal" id="pollState">IDLE</span></div>
           <div class="chip"><span class="chipLabel">API</span><span class="chipVal" id="apiMs">—</span></div>
-          <div class="chip"><span class="chipLabel">Wave</span><span class="chipVal">LIVE</span></div>
+          <div class="chip"><span class="chipLabel">WAVE</span><span class="chipVal">LIVE</span></div>
         </div>
       </div>
 
-      <!-- RIGHT COLUMN: 2 waves -->
-      <div class="col">
+      <!-- BOTTOM: 4 waves (always scrolling right->left) -->
+      <div class="wavesGrid">
+        <div class="waveCard" data-key="outlook" id="w_outlook">
+          <div class="waveTop">
+            <div class="waveName">OUTLOOK</div>
+            <div class="waveNums">
+              <div class="bigNum" id="val_outlook">—</div>
+              <div class="delta" id="meta_outlook">Since baseline: —</div>
+            </div>
+          </div>
+          <div class="waveCanvasWrap">
+            <canvas class="waveCanvas" id="cv_outlook"></canvas>
+          </div>
+        </div>
+
+        <div class="waveCard" data-key="slack" id="w_slack">
+          <div class="waveTop">
+            <div class="waveName">SLACK</div>
+            <div class="waveNums">
+              <div class="bigNum" id="val_slack">—</div>
+              <div class="delta" id="meta_slack">Since baseline: —</div>
+            </div>
+          </div>
+          <div class="waveCanvasWrap">
+            <canvas class="waveCanvas" id="cv_slack"></canvas>
+          </div>
+        </div>
+
         <div class="waveCard" data-key="hubspot" id="w_hubspot">
           <div class="waveTop">
             <div class="waveName">HUBSPOT</div>
@@ -124,7 +116,6 @@
           </div>
           <div class="waveCanvasWrap">
             <canvas class="waveCanvas" id="cv_hubspot"></canvas>
-            <div class="scanline"></div>
           </div>
         </div>
 
@@ -138,7 +129,6 @@
           </div>
           <div class="waveCanvasWrap">
             <canvas class="waveCanvas" id="cv_monday"></canvas>
-            <div class="scanline"></div>
           </div>
         </div>
       </div>
