@@ -1,8 +1,11 @@
+/* =========================
+   app.js (REPLACE WHOLE FILE)
+   ========================= */
+
 /* ==========================================================
-   PTC Gauge Cluster — LIVE TELEMETRY (Static GitHub Pages)
+   PTC Gauge Cluster — ENTERPRISE TELEMETRY (Static GitHub Pages)
    - TOTAL = Outlook Inbox unread + (Slack/HubSpot/Monday Outlook folder unread)
-   - Waves = oscilloscope feed, always scrolling right->left
-   - Spikes travel left when new notifications arrive
+   - Waves = flatline until refresh causes spike up/down
    - Counts only (Mail.ReadBasic), no message bodies
    ========================================================== */
 
@@ -29,7 +32,6 @@ const CONFIG = {
     monday:  "https://monday.com/"
   },
 
-  // Polling interval (data pulls). Waves animate continuously regardless.
   autoRefreshSeconds: 60
 };
 /* ====== END CONFIG ====== */
@@ -179,11 +181,7 @@ function renderTotalGauge(total, delta){
 }
 
 /* ==========================================================
-   OSCILLOSCOPE WAVE ENGINE (always scrolling right->left)
-   - Uses a ring buffer of samples
-   - New samples enter on the RIGHT
-   - Old samples drift LEFT
-   - Trails + glow + “years of work” look
+   OSCILLOSCOPE WAVE — Enterprise flatline until update
    ========================================================== */
 class OscilloscopeWave {
   constructor(key, canvasId, cardId){
@@ -193,29 +191,21 @@ class OscilloscopeWave {
     this.ctx = this.cv.getContext("2d", { alpha: true });
 
     this.dpr = Math.max(1, window.devicePixelRatio || 1);
-    this.w = 0;
-    this.h = 0;
+    this.w = 0; this.h = 0;
 
-    // ring buffer
-    this.N = 300;                   // resolution of the wave
+    this.N = 320;
     this.buf = new Float32Array(this.N);
     this.write = 0;
 
-    // timing
     this.acc = 0;
-    this.sampleHz = 90;             // how fast new samples enter (controls scroll speed)
+    this.sampleHz = 80;            // scroll speed
     this.sampleDt = 1 / this.sampleHz;
 
-    // motion
     this.phase = Math.random() * 1000;
     this.phase2 = Math.random() * 1000;
 
-    // level drives intensity (based on unread count)
-    this.level = 0;                 // 0..1
-    this.pendingSpikes = 0;         // integer spikes queued
-    this.spikeTail = 0;             // decay tail for nicer spikes
-
-    // accent from CSS
+    this.load = 0;                 // glow intensity only
+    this.impulse = 0;              // signed pulse energy (decays)
     this.accent = this._getAccent();
 
     this._resize();
@@ -224,10 +214,7 @@ class OscilloscopeWave {
       this._resize();
     });
 
-    // start with a visible line even before any data pulls
-    for (let i=0;i<this.N;i++){
-      this.buf[i] = (Math.sin(i*0.08) * 0.08);
-    }
+    for (let i=0;i<this.N;i++) this.buf[i] = 0; // flatline
   }
 
   _getAccent(){
@@ -243,26 +230,23 @@ class OscilloscopeWave {
     const rect = this.cv.getBoundingClientRect();
     this.w = Math.max(1, rect.width);
     this.h = Math.max(1, rect.height);
-
-    this.cv.width = Math.floor(this.w * this.dpr);
+    this.cv.width  = Math.floor(this.w * this.dpr);
     this.cv.height = Math.floor(this.h * this.dpr);
-
-    // draw in CSS pixels
     this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
-
-    // clear hard once on resize
     this.ctx.clearRect(0,0,this.w,this.h);
   }
 
   setCount(count){
+    // count affects glow only (not amplitude)
     const c = Number.isFinite(count) ? count : 0;
-    const target = clamp(c / 55, 0, 1);           // tune mapping
-    this.level = this.level + (target - this.level) * 0.10;
+    const target = clamp(c / 200, 0, 1);
+    this.load = this.load + (target - this.load) * 0.10;
   }
 
-  spike(delta){
-    const d = Math.max(1, Math.min(25, delta|0));
-    this.pendingSpikes += d;
+  kick(delta){
+    // delta can be + or -
+    const d = clamp(delta, -60, 60);
+    this.impulse += d * 0.08;
 
     if (this.card){
       this.card.classList.remove("pulse");
@@ -277,41 +261,26 @@ class OscilloscopeWave {
   }
 
   _nextSample(dt){
-    // baseline motion (always moving even at 0)
-    const baseAmp = 0.10 + this.level * 0.26;
-    const f1 = 0.90 + this.level * 0.60;
-    const f2 = 0.55 + this.level * 0.40;
+    this.phase += dt * 3.1;
+    this.phase2 += dt * 1.7;
 
-    this.phase += dt * (4.6 + this.level * 4.2);
-    this.phase2 += dt * (2.8 + this.level * 2.0);
+    // nearly flat baseline (tiny motion so it looks “alive” but not heart-monitor)
+    const micro =
+      (Math.sin(this.phase) * 0.004) +
+      (Math.sin(this.phase2) * 0.003);
 
-    const s1 = Math.sin(this.phase * f1) * 0.62;
-    const s2 = Math.sin(this.phase2 * f2) * 0.38;
+    // decay pulse energy
+    this.impulse *= 0.90;
 
-    // deterministic-ish noise (no RNG flicker)
-    const n = Math.sin((this.phase * 3.7) + (this.phase2 * 1.9)) * 0.14;
+    // pulse response
+    const pulse = clamp(this.impulse, -1.2, 1.2);
 
-    // spikes: sharp attack, slow decay, and they travel left as samples scroll
-    let spike = 0;
-    if (this.pendingSpikes > 0){
-      spike = 1.25 + Math.min(1.2, this.pendingSpikes * 0.02);
-      this.pendingSpikes -= 1;
-      this.spikeTail = Math.max(this.spikeTail, spike);
-    }
-    this.spikeTail *= 0.88; // decay
-    spike += this.spikeTail * 0.20;
-
-    // final sample in -1..1
-    // spike is positive => wave goes UP on screen (we subtract later)
-    const v = clamp(((s1+s2+n) * baseAmp) + (spike * 0.75), -1.2, 1.6);
+    const v = clamp(micro + pulse, -1.5, 1.5);
     this._pushSample(v);
   }
 
   step(dt){
-    // update accent in case theme changes
     this.accent = this._getAccent();
-
-    // generate new samples at fixed Hz (controls scroll)
     this.acc += dt;
     while (this.acc >= this.sampleDt){
       this._nextSample(this.sampleDt);
@@ -321,22 +290,21 @@ class OscilloscopeWave {
 
   render(){
     const ctx = this.ctx;
-    const w = this.w;
-    const h = this.h;
+    const w = this.w, h = this.h;
 
-    // TRAILS: fade old frames slightly (professional oscilloscope look)
+    // trails (subtle)
     ctx.save();
     ctx.globalCompositeOperation = "source-over";
-    ctx.fillStyle = "rgba(0,0,0,0.18)";
+    ctx.fillStyle = "rgba(0,0,0,0.22)";
     ctx.fillRect(0,0,w,h);
     ctx.restore();
 
-    const mid = h * 0.55;
-    const ampPx = (h * 0.33) * (0.55 + this.level * 0.75);
+    const mid = h * 0.56;
+    const ampPx = h * 0.20; // smaller = flatter look
 
-    // draw faint baseline
+    // baseline
     ctx.save();
-    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.strokeStyle = "rgba(255,255,255,0.09)";
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, mid);
@@ -344,10 +312,11 @@ class OscilloscopeWave {
     ctx.stroke();
     ctx.restore();
 
-    // Wave path: oldest on left, newest on right
     const sampleAt = (i) => this.buf[(this.write + i) % this.N];
 
-    // Glow layers (lighter blend)
+    const glowA = 0.05 + this.load * 0.10;
+    const coreA = 0.88;
+
     const drawWave = (lineW, alpha, color) => {
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
@@ -362,10 +331,7 @@ class OscilloscopeWave {
         const t = x / w;
         const idx = Math.floor(t * (this.N - 1));
         const v = sampleAt(idx);
-
-        // v positive should go UP (smaller y)
         const y = mid - (v * ampPx);
-
         if (x === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }
@@ -373,27 +339,27 @@ class OscilloscopeWave {
       ctx.restore();
     };
 
-    // outer bloom
-    drawWave(10, 0.10, this.accent);
-    drawWave(6,  0.16, this.accent);
+    // glow
+    drawWave(8, glowA * 0.55, this.accent);
+    drawWave(5, glowA * 0.75, this.accent);
 
-    // crisp core
-    drawWave(2.2, 0.92, "rgba(255,255,255,0.95)");
-    drawWave(1.6, 0.92, this.accent);
+    // core
+    drawWave(2.0, coreA, "rgba(255,255,255,0.92)");
+    drawWave(1.4, coreA, this.accent);
 
-    // “spark” dot at the newest point (right edge) for wow
+    // spark dot at newest sample
     const newest = this.buf[(this.write + this.N - 1) % this.N];
     const yN = mid - (newest * ampPx);
 
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
-    ctx.globalAlpha = 0.85;
+    ctx.globalAlpha = 0.70 + this.load * 0.20;
     ctx.fillStyle = this.accent;
     ctx.beginPath();
-    ctx.arc(w - 3, yN, 3.2, 0, Math.PI*2);
+    ctx.arc(w - 3, yN, 2.8, 0, Math.PI*2);
     ctx.fill();
 
-    ctx.globalAlpha = 0.25;
+    ctx.globalAlpha = 0.18 + this.load * 0.10;
     ctx.beginPath();
     ctx.arc(w - 3, yN, 10, 0, Math.PI*2);
     ctx.fill();
@@ -413,7 +379,6 @@ function initWaves(){
   WAVES.hubspot = new OscilloscopeWave("hubspot", "cv_hubspot", "w_hubspot");
   WAVES.monday  = new OscilloscopeWave("monday",  "cv_monday",  "w_monday");
 }
-
 function animate(){
   const now = performance.now();
   const dt = Math.min(0.05, (now - _lastFrame) / 1000);
@@ -482,13 +447,11 @@ async function refreshAll(){
     };
     counts.total = computeTotals(counts);
 
-    // numbers
     $("val_outlook").textContent = String(counts.outlook);
     $("val_slack").textContent = String(counts.slack);
     $("val_hubspot").textContent = String(counts.hubspot);
     $("val_monday").textContent = String(counts.monday);
 
-    // deltas from baseline
     const { deltas } = computeDeltas(counts);
     const fmt = (v, key) => {
       if (v == null) return key === "total" ? "New since baseline: —" : "Since baseline: —";
@@ -500,18 +463,16 @@ async function refreshAll(){
     $("meta_hubspot").textContent = fmt(deltas?.hubspot ?? null, "hubspot");
     $("meta_monday").textContent  = fmt(deltas?.monday ?? null, "monday");
 
-    // total gauge
     renderTotalGauge(counts.total, deltas?.total ?? null);
 
-    // wave intensity + spikes that travel left
+    // waves: flatline unless update -> kick up/down
     for (const k of ["outlook","slack","hubspot","monday"]){
       const prev = Number.isFinite(lastCounts[k]) ? lastCounts[k] : null;
       const cur  = counts[k] ?? 0;
 
       WAVES[k]?.setCount(cur);
-
-      if (prev != null && cur > prev){
-        WAVES[k]?.spike(cur - prev);
+      if (prev != null && cur !== prev){
+        WAVES[k]?.kick(cur - prev);
       }
       lastCounts[k] = cur;
     }
