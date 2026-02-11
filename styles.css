@@ -1,3 +1,7 @@
+/* =========================
+   styles.css (REPLACE WHOLE FILE)
+   ========================= */
+
 :root{
   --bg0:#070910;
   --bg1:#0c1020;
@@ -36,6 +40,7 @@ body{
   background: rgba(8,10,16,0.72);
   backdrop-filter: blur(10px);
 }
+
 .brand{ display:flex; align-items:center; gap:12px; }
 .logo{
   width:44px; height:44px; display:grid; place-items:center;
@@ -180,7 +185,7 @@ body{
 .noteBody{ margin-top:6px; color: rgba(255,255,255,0.70); font-size:13px; line-height:1.35; }
 
 /* ==========================================================
-   TOTAL GAUGE — ARC + GLOW + NEEDLE
+   TOTAL GAUGE — Enterprise arc + glow + needle
    ========================================================== */
 .gauge{
   --pct: 0.0;
@@ -195,6 +200,7 @@ body{
   border-radius: var(--radius);
   border: 1px solid rgba(255,255,255,0.11);
   background:
+    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)),
     radial-gradient(120% 120% at 25% 12%, rgba(255,255,255,0.09), transparent 46%),
     radial-gradient(120% 120% at 70% 90%, rgba(0,0,0,0.42), transparent 60%),
     rgba(14, 16, 26, 0.72);
@@ -209,10 +215,10 @@ body{
   border-radius: var(--radius);
   pointer-events:none;
   background:
-    radial-gradient(120% 120% at 18% 10%, rgba(255,255,255,0.16), transparent 44%),
+    radial-gradient(120% 120% at 18% 10%, rgba(255,255,255,0.14), transparent 44%),
     linear-gradient(135deg, rgba(255,255,255,0.08), transparent 45%),
     linear-gradient(0deg, rgba(255,255,255,0.05), rgba(255,255,255,0.00));
-  opacity: 0.60;
+  opacity: 0.55;
   mix-blend-mode: screen;
 }
 .ring{
@@ -243,15 +249,15 @@ body{
   background: conic-gradient(from var(--arcStart), var(--fill) calc(var(--pct) * var(--arcSpan)), transparent 0);
   -webkit-mask: radial-gradient(circle, transparent 64%, #000 65%);
   mask: radial-gradient(circle, transparent 64%, #000 65%);
-  filter: drop-shadow(0 0 22px rgba(96,165,255,0.20)) drop-shadow(0 0 52px rgba(96,165,255,0.12));
+  filter: drop-shadow(0 0 18px rgba(96,165,255,0.18)) drop-shadow(0 0 38px rgba(96,165,255,0.10));
 }
 .gaugeTicks{
   position:absolute;
   width: 312px; height: 312px;
   border-radius: 999px;
-  opacity: 0.72;
+  opacity: 0.62;
   pointer-events:none;
-  background: conic-gradient(from var(--arcStart), rgba(255,255,255,0.25) 0 1deg, transparent 1deg 9deg);
+  background: conic-gradient(from var(--arcStart), rgba(255,255,255,0.22) 0 1deg, transparent 1deg 9deg);
   -webkit-mask: radial-gradient(circle, transparent 70%, #000 71%);
   mask: radial-gradient(circle, transparent 70%, #000 71%);
   filter: drop-shadow(0 0 12px rgba(0,0,0,0.55));
@@ -270,11 +276,11 @@ body{
 .needle{
   position:absolute;
   width: 3px; height: 132px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.62));
+  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.60));
   border-radius: 999px;
   transform-origin: 50% 86%;
   transform: rotate(var(--angle)) translateY(-28px);
-  box-shadow: 0 0 18px rgba(255,255,255,0.18), 0 0 34px rgba(0,0,0,0.35);
+  box-shadow: 0 0 18px rgba(255,255,255,0.14), 0 0 34px rgba(0,0,0,0.35);
   transition: transform 420ms cubic-bezier(.2,1.0,.2,1.0);
 }
 .needle::after{
@@ -285,7 +291,7 @@ body{
   width:7px; height:7px;
   border-radius:999px;
   background: rgba(255,255,255,0.92);
-  box-shadow: 0 0 18px rgba(255,255,255,0.32);
+  box-shadow: 0 0 18px rgba(255,255,255,0.26);
 }
 .hub{
   position:absolute;
@@ -337,7 +343,7 @@ body{
 }
 
 /* ==========================================================
-   OSCILLOSCOPE WAVES — always scrolling right->left + wow
+   WAVES — Enterprise flatline + spike-on-refresh look
    ========================================================== */
 .waveCard{
   --accent: #60a5ff;
@@ -346,10 +352,11 @@ body{
   border-radius: var(--radius);
   border: 1px solid rgba(255,255,255,0.10);
   background:
-    radial-gradient(120% 120% at 22% 14%, rgba(255,255,255,0.07), transparent 46%),
-    rgba(16, 18, 28, 0.72);
+    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)),
+    radial-gradient(1000px 260px at 18% 10%, rgba(255,255,255,0.06), transparent 55%),
+    rgba(12, 14, 22, 0.72);
   box-shadow: 0 26px 86px rgba(0,0,0,0.55);
-  padding: 12px;
+  padding: 14px;
   overflow:hidden;
 }
 
@@ -362,115 +369,17 @@ body{
   content:"";
   position:absolute; inset:0;
   pointer-events:none;
-  opacity: 0.12;
+  opacity: 0.10;
   background:
     repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 7px),
     radial-gradient(900px 280px at 18% 18%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 55%);
 }
 
-.waveCard.pulse{
-  animation: pulseGlow 520ms ease;
-}
-@keyframes pulseGlow{
-  0%{ border-color: rgba(255,255,255,0.10); box-shadow: 0 26px 86px rgba(0,0,0,0.55); }
-  50%{ border-color: color-mix(in srgb, var(--accent) 55%, rgba(255,255,255,0.10)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent) inset, 0 0 55px color-mix(in srgb, var(--accent) 22%, transparent), 0 26px 86px rgba(0,0,0,0.55); }
-  100%{ border-color: rgba(255,255,255,0.10); box-shadow: 0 26px 86px rgba(0,0,0,0.55); }
-}
-
 .waveTop{
   display:flex;
   justify-content:space-between;
-  align-items:flex-end;
+  align-items:center;
   gap: 10px;
-  margin-bottom: 8px;
-}
-.waveName{
-  font-weight: 1000;
-  letter-spacing: 1.2px;
-  font-size: 12px;
-  color: rgba(255,255,255,0.86);
-}
-.bigNum{
-  font-weight: 1000;
-  font-size: 34px;
-  letter-spacing: 0.6px;
-  text-shadow: 0 2px 18px rgba(0,0,0,0.60);
-}
-.delta{
-  font-weight: 900;
-  color: rgba(255,255,255,0.70);
-  font-size: 12px;
-  text-align:right;
-}
-
-.waveCanvasWrap{
-  position:relative;
-  height: 160px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.09);
-  background:
-    radial-gradient(120% 120% at 25% 30%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 62%),
-    rgba(0,0,0,0.32);
-  overflow:hidden;
-}
-
-/* grid + vignette */
-.waveCanvasWrap::before{
-  content:"";
-  position:absolute; inset:0;
-  pointer-events:none;
-  opacity: 0.12;
-  background:
-    linear-gradient(to right, rgba(255,255,255,0.10) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255,255,255,0.10) 1px, transparent 1px);
-  background-size: 28px 28px;
-}
-.waveCanvasWrap::after{
-  content:"";
-  position:absolute; inset:-2px;
-  pointer-events:none;
-  background:
-    radial-gradient(90% 70% at 50% 50%, transparent 55%, rgba(0,0,0,0.55)),
-    linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 18%, transparent), transparent);
-  opacity: 0.65;
-  mix-blend-mode: screen;
-
-  /* scan beam */
-  transform: translateX(-120%);
-  animation: beam 2.2s linear infinite;
-}
-@keyframes beam{
-  0%   { transform: translateX(-120%); }
-  100% { transform: translateX(120%); }
-}
-
-.waveCanvas{
-  width:100%;
-  height:100%;
-  display:block;
-}
-
-@media (max-width: 920px){
-  .wavesGrid{ grid-template-columns: 1fr; }
-  .statusBar{ grid-template-columns: 1fr 1fr; }
-}
-/* ==========================================================
-   ENTERPRISE WAVE CARDS (OVERRIDES)
-   Paste at bottom of styles.css
-   ========================================================== */
-
-.waveCard{
-  padding: 14px;
-  border-radius: 18px;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)),
-    radial-gradient(1000px 260px at 18% 10%, rgba(255,255,255,0.06), transparent 55%),
-    rgba(12, 14, 22, 0.72);
-  border: 1px solid rgba(255,255,255,0.10);
-}
-
-.waveTop{
-  align-items: center;
   margin-bottom: 10px;
   padding-bottom: 10px;
   border-bottom: 1px solid rgba(255,255,255,0.08);
@@ -503,28 +412,75 @@ body{
   gap:2px;
 }
 .bigNum{
+  font-weight: 1000;
   font-size: 44px;
   line-height: 1;
-  font-weight: 1000;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
+  text-shadow: 0 2px 18px rgba(0,0,0,0.60);
 }
 .delta{
+  font-weight: 900;
+  color: rgba(255,255,255,0.70);
   font-size: 12px;
   letter-spacing: 0.6px;
-  font-weight: 900;
-  opacity: 0.78;
+  text-align:right;
 }
 
 .waveCanvasWrap{
+  position:relative;
   height: 170px;
   border-radius: 14px;
   border: 1px solid rgba(255,255,255,0.09);
   background:
     radial-gradient(900px 240px at 18% 20%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
     rgba(0,0,0,0.32);
+  overflow:hidden;
 }
 
-/* soften the scan beam (more enterprise, less arcade) */
+.waveCanvasWrap::before{
+  content:"";
+  position:absolute; inset:0;
+  pointer-events:none;
+  opacity: 0.10;
+  background:
+    linear-gradient(to right, rgba(255,255,255,0.10) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.10) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
 .waveCanvasWrap::after{
-  opacity: 0.40;
+  content:"";
+  position:absolute; inset:-2px;
+  pointer-events:none;
+  background:
+    radial-gradient(90% 70% at 50% 50%, transparent 55%, rgba(0,0,0,0.55)),
+    linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 16%, transparent), transparent);
+  opacity: 0.35;
+  mix-blend-mode: screen;
+  transform: translateX(-120%);
+  animation: beam 2.6s linear infinite;
+}
+@keyframes beam{
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+
+.waveCanvas{
+  width:100%;
+  height:100%;
+  display:block;
+}
+
+.waveCard.pulse{
+  animation: pulseGlow 520ms ease;
+}
+@keyframes pulseGlow{
+  0%{ border-color: rgba(255,255,255,0.10); }
+  55%{ border-color: color-mix(in srgb, var(--accent) 55%, rgba(255,255,255,0.10)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent) inset, 0 0 55px color-mix(in srgb, var(--accent) 22%, transparent), 0 26px 86px rgba(0,0,0,0.55); }
+  100%{ border-color: rgba(255,255,255,0.10); }
+}
+
+@media (max-width: 920px){
+  .wavesGrid{ grid-template-columns: 1fr; }
+  .statusBar{ grid-template-columns: 1fr 1fr; }
 }
