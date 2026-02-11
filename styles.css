@@ -1,385 +1,304 @@
 :root{
-  --bg: #07080c;
-  --panel: rgba(15, 16, 22, 0.78);
-  --border: rgba(255,255,255,0.10);
-  --text: rgba(255,255,255,0.92);
+  --bg0:#0a0b10;
+  --bg1:#0f1220;
+  --card: rgba(16, 18, 28, 0.70);
+  --stroke: rgba(255,255,255,0.10);
+  --text: rgba(255,255,255,0.90);
   --muted: rgba(255,255,255,0.66);
 
-  /* Gauge visuals */
-  --ringTrack: rgba(255,255,255,0.12);
-  --ringFill: rgba(140, 190, 255, 0.95);
-  --ringWarn: rgba(255, 205, 120, 0.95);
-  --ringRed: rgba(255, 120, 120, 0.95);
+  --neon: #60a5ff; /* default accent */
+  --warn: #ffcc66;
+  --bad:  #ff4d6d;
 
-  --shadow: 0 18px 50px rgba(0,0,0,0.5);
-  --radius: 18px;
+  --ringFill: var(--neon);
+  --ringWarn: var(--warn);
+  --ringRed:  var(--bad);
 
-  /* Needle angle range */
-  --minAngle: -120deg;
-  --maxAngle: 120deg;
+  --radius: 16px;
 }
 
-*{ box-sizing: border-box; }
+*{ box-sizing:border-box; }
 html,body{ height:100%; }
 body{
   margin:0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
   color: var(--text);
-  font-family: -apple-system, system-ui, Segoe UI, Roboto, Arial, sans-serif;
   background:
-    radial-gradient(1200px 800px at 50% 10%, rgba(70,120,255,0.10), transparent 55%),
-    radial-gradient(900px 700px at 10% 90%, rgba(255,90,120,0.08), transparent 55%),
-    linear-gradient(180deg, #05060a, #07080c 35%, #05060a);
+    radial-gradient(1200px 600px at 20% 10%, rgba(96,165,255,0.14), transparent 55%),
+    radial-gradient(900px 500px at 85% 30%, rgba(255,77,109,0.10), transparent 55%),
+    linear-gradient(180deg, var(--bg0), var(--bg1));
+  overflow-x:hidden;
 }
 
 /* Top bar */
 .topbar{
   position: sticky;
-  top: 0;
-  z-index: 10;
+  top:0;
+  z-index: 50;
   display:flex;
+  justify-content:space-between;
   align-items:center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-  background: rgba(6,7,10,0.82);
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: rgba(10,11,16,0.72);
   backdrop-filter: blur(10px);
 }
-
 .brand{ display:flex; align-items:center; gap:12px; }
 .logo{
-  width: 44px; height: 44px;
-  display:flex; align-items:center; justify-content:center;
+  width:44px; height:44px;
+  display:grid; place-items:center;
   border-radius: 14px;
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,0.04);
-  font-weight: 900;
-  letter-spacing: 0.5px;
+  font-weight: 1000;
+  letter-spacing:1px;
+  background:
+    radial-gradient(120% 120% at 30% 30%, rgba(255,255,255,0.16), transparent 50%),
+    rgba(96,165,255,0.12);
+  border: 1px solid rgba(96,165,255,0.22);
+  box-shadow: 0 10px 35px rgba(0,0,0,0.55);
 }
-.titles .title{ font-weight: 900; font-size: 16px; }
-.titles .subtitle{ font-size: 12px; opacity: 0.75; }
+.titles .title{ font-weight:1000; letter-spacing:0.7px; }
+.titles .subtitle{ font-size:12px; color: var(--muted); margin-top:2px; }
 
-.controls{ display:flex; gap:8px; flex-wrap: wrap; justify-content:flex-end; }
+.controls{ display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
 .btn{
-  border: 1px solid var(--border);
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.10);
   background: rgba(255,255,255,0.04);
   color: var(--text);
-  padding: 10px 12px;
-  border-radius: 14px;
-  cursor: pointer;
-  font-weight: 800;
-  letter-spacing: 0.4px;
+  font-weight: 900;
+  letter-spacing:0.6px;
+  cursor:pointer;
+  transition: transform .12s ease, background .12s ease, border-color .12s ease;
 }
-.btn:hover{ background: rgba(255,255,255,0.07); }
-.btn:disabled{ opacity: 0.45; cursor: not-allowed; }
+.btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.06); }
+.btn:disabled{ opacity:0.45; cursor:not-allowed; transform:none; }
 .btn.primary{
-  background: rgba(90,140,255,0.20);
-  border-color: rgba(90,140,255,0.40);
+  background: rgba(96,165,255,0.14);
+  border-color: rgba(96,165,255,0.25);
+  box-shadow: 0 0 0 1px rgba(96,165,255,0.10) inset, 0 16px 40px rgba(0,0,0,0.55);
 }
-.btn.primary:hover{ background: rgba(90,140,255,0.28); }
 
-.wrap{ max-width: 1100px; margin: 0 auto; padding: 18px 16px 30px; }
+/* Layout wrap */
+.wrap{ max-width: 1200px; margin: 18px auto 60px; padding: 0 14px; }
 
-/* Status bar */
 .statusBar{
-  display:flex;
-  gap: 14px;
-  flex-wrap: wrap;
-  padding: 12px 14px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--panel);
-  box-shadow: var(--shadow);
+  display:grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 10px;
+  margin: 14px 0;
 }
 .statusItem{
-  display:flex;
-  gap: 10px;
-  align-items: baseline;
-  min-width: 200px;
-}
-.statusItem .label{
-  font-size: 12px;
-  opacity: 0.70;
-  font-weight: 800;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-}
-.statusItem span:last-child{
-  font-size: 13px;
-  font-weight: 800;
-  opacity: 0.95;
-}
-
-/* Warning lights */
-.lights{
-  margin-top: 12px;
-  display:flex;
-  gap: 10px;
-  flex-wrap: wrap;
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 14px;
   padding: 10px 12px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--panel);
+  background: rgba(255,255,255,0.03);
+}
+.statusItem .label{ display:block; font-size:11px; color: var(--muted); letter-spacing:1px; font-weight:900; text-transform:uppercase; }
+.statusItem span:last-child{ font-weight: 1000; }
+
+/* Lights */
+.lights{
+  display:flex;
+  gap: 10px;
+  flex-wrap:wrap;
+  margin: 8px 0 16px;
 }
 .light{
   display:flex;
-  gap: 10px;
   align-items:center;
-  padding: 8px 10px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.08);
+  gap:10px;
+  padding: 10px 12px;
+  border-radius: 999px;
   background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.09);
 }
 .light .bulb{
-  width: 12px;
-  height: 12px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.14);
-  box-shadow: none;
-}
-.light .lightLabel{
-  font-weight: 900;
-  font-size: 12px;
-  letter-spacing: 0.5px;
-  opacity: 0.75;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: rgba(255,255,255,0.18);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.10) inset;
 }
 .light.on .bulb{
-  background: rgba(140, 190, 255, 0.95);
-  box-shadow: 0 0 14px rgba(140, 190, 255, 0.65);
+  background: var(--neon);
+  box-shadow: 0 0 18px rgba(96,165,255,0.55), 0 0 0 1px rgba(255,255,255,0.10) inset;
 }
 .light.danger.on .bulb{
-  background: rgba(255,120,120,0.95);
-  box-shadow: 0 0 14px rgba(255,120,120,0.65);
+  background: var(--bad);
+  box-shadow: 0 0 18px rgba(255,77,109,0.55), 0 0 0 1px rgba(255,255,255,0.10) inset;
 }
+.lightLabel{ font-weight:1000; letter-spacing: 0.8px; font-size:12px; }
 
-/* Cluster layout */
-.cluster{
-  margin-top: 14px;
+/* Cluster V2 */
+.clusterV2{
   display:grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr 420px 1fr;
   gap: 14px;
-  align-items: center;
+  align-items:stretch;
 }
+.col{ display:flex; flex-direction:column; gap:14px; }
+.center{ display:flex; flex-direction:column; gap:12px; align-items:stretch; }
 
-/* Big center gauge occupies middle column */
-.gauge--big{
-  grid-column: 2 / 3;
-  grid-row: 1 / 3;
-  transform: translateY(4px);
-  min-height: 360px;
-}
-
-/* Place 4 minis around it */
-#g_outlook{ grid-column: 1 / 2; grid-row: 1 / 2; }
-#g_slack{   grid-column: 3 / 4; grid-row: 1 / 2; }
-#g_hubspot{ grid-column: 1 / 2; grid-row: 2 / 3; }
-#g_monday{  grid-column: 3 / 4; grid-row: 2 / 3; }
-
-@media (max-width: 980px){
-  .cluster{
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .gauge--big{
-    grid-column: 1 / -1;
-    grid-row: auto;
-    min-height: 320px;
-  }
-  #g_outlook,#g_slack,#g_hubspot,#g_monday{
-    grid-column: auto;
-    grid-row: auto;
-  }
-}
-
-.gauge{
-  --pct: 0.0;              /* 0..1 */
-  --angle: -120deg;        /* needle rotation */
-  --fill: var(--ringFill); /* dynamic color based on zones */
-  position: relative;
+/* Wave cards */
+.waveCard{
+  position:relative;
   border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--panel);
-  box-shadow: var(--shadow);
-  padding: 14px;
-  min-height: 220px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background:
+    radial-gradient(120% 120% at 20% 15%, rgba(255,255,255,0.07), transparent 45%),
+    rgba(16, 18, 28, 0.72);
+  box-shadow: 0 24px 70px rgba(0,0,0,0.52);
+  padding: 12px;
   overflow:hidden;
 }
-
-/* Carbon-ish subtle texture */
-.gauge::before{
+.waveCard::before{
   content:"";
   position:absolute; inset:0;
-  opacity: 0.09;
   background:
-    linear-gradient(45deg, rgba(255,255,255,0.10) 0 2px, transparent 2px 12px),
-    linear-gradient(-45deg, rgba(255,255,255,0.10) 0 2px, transparent 2px 12px);
-  background-size: 18px 18px;
-  mix-blend-mode: overlay;
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 6px);
+  opacity: 0.12;
   pointer-events:none;
 }
+.waveCard.pulse{
+  animation: pulseGlow 520ms ease;
+}
+@keyframes pulseGlow{
+  0%{ box-shadow: 0 24px 70px rgba(0,0,0,0.52); border-color: rgba(255,255,255,0.10); }
+  50%{ box-shadow: 0 0 0 1px rgba(96,165,255,0.15) inset, 0 0 45px rgba(96,165,255,0.24), 0 24px 70px rgba(0,0,0,0.52); border-color: rgba(96,165,255,0.35); }
+  100%{ box-shadow: 0 24px 70px rgba(0,0,0,0.52); border-color: rgba(255,255,255,0.10); }
+}
 
-.gauge--big{ min-height: 360px; }
-
-.ring{
-  position: relative;
-  width: 100%;
-  height: 100%;
-  min-height: 180px;
-  border-radius: 999px;
+.waveTop{
   display:flex;
-  align-items:center;
-  justify-content:center;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap: 10px;
+  margin-bottom: 8px;
 }
-
-/* Ring using conic-gradient */
-.ring::before{
-  content:"";
-  position:absolute;
-  width: 180px;
-  height: 180px;
-  border-radius: 999px;
-  background:
-    conic-gradient(
-      from 240deg,
-      var(--fill) calc(var(--pct) * 1turn),
-      var(--ringTrack) 0
-    );
-  mask: radial-gradient(circle, transparent 59%, #000 60%);
-  -webkit-mask: radial-gradient(circle, transparent 59%, #000 60%);
-  filter: drop-shadow(0 0 14px rgba(140,190,255,0.12));
-}
-
-.gauge--big .ring::before{
-  width: 260px;
-  height: 260px;
-  mask: radial-gradient(circle, transparent 62%, #000 63%);
-  -webkit-mask: radial-gradient(circle, transparent 62%, #000 63%);
-}
-
-/* Needle */
-.needle{
-  position:absolute;
-  width: 2px;
-  height: 90px;
-  background: rgba(255,255,255,0.92);
-  border-radius: 999px;
-  transform-origin: 50% 86%;
-  transform: rotate(var(--angle)) translateY(-22px);
-  box-shadow: 0 0 18px rgba(255,255,255,0.25);
-}
-.gauge--big .needle{
-  height: 125px;
-  transform: rotate(var(--angle)) translateY(-28px);
-}
-
-/* Needle hub */
-.hub{
-  position:absolute;
-  width: 16px;
-  height: 16px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.18);
-  box-shadow: 0 0 18px rgba(255,255,255,0.10);
-}
-
-.gaugeCenter{
-  position:absolute;
-  inset: 0;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap: 6px;
-  padding: 12px 10px;
-  text-align:center;
-}
-
-.gaugeName{
+.waveName{
   font-weight: 1000;
-  letter-spacing: 0.9px;
+  letter-spacing: 1.2px;
   font-size: 12px;
-  opacity: 0.72;
+  color: rgba(255,255,255,0.82);
 }
-.gaugeValue{
+.waveNums{ text-align:right; }
+.bigNum{
   font-weight: 1000;
-  font-size: 44px;
+  font-size: 34px;
   letter-spacing: 0.6px;
+  text-shadow: 0 2px 18px rgba(0,0,0,0.60);
 }
-.gauge--big .gaugeValue{ font-size: 64px; }
-
-.gaugeMeta{
-  font-size: 12px;
-  opacity: 0.78;
-  font-weight: 800;
-}
-
-.ticks{
-  position:absolute;
-  left: 14px; right: 14px;
-  bottom: 12px;
-  display:flex;
-  justify-content: space-between;
-  opacity: 0.62;
+.delta{
   font-weight: 900;
-  font-size: 11px;
-  letter-spacing: 0.4px;
+  color: rgba(255,255,255,0.70);
+  font-size: 12px;
 }
 
+.waveCanvasWrap{
+  position:relative;
+  height: 124px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background:
+    radial-gradient(120% 120% at 25% 30%, rgba(96,165,255,0.08), transparent 60%),
+    rgba(0,0,0,0.28);
+  overflow:hidden;
+}
+.waveCanvas{
+  width:100%;
+  height:100%;
+  display:block;
+}
+
+/* moving scanline */
+.scanline{
+  position:absolute;
+  top:-30%;
+  left:-40%;
+  width: 55%;
+  height: 220%;
+  background: linear-gradient(90deg, transparent, rgba(96,165,255,0.12), transparent);
+  transform: rotate(12deg);
+  animation: scanSweep 2.8s linear infinite;
+  mix-blend-mode: screen;
+  pointer-events:none;
+  opacity: 0.85;
+}
+@keyframes scanSweep{
+  0%{ transform: translateX(-40%) rotate(12deg); }
+  100%{ transform: translateX(240%) rotate(12deg); }
+}
+
+/* Links */
 .linksRow{
-  margin-top: 14px;
   display:flex;
   gap: 10px;
-  flex-wrap: wrap;
+  flex-wrap:wrap;
+  margin-top: 16px;
 }
 .pill{
   display:inline-flex;
   align-items:center;
-  justify-content:center;
+  gap:10px;
   padding: 10px 12px;
   border-radius: 999px;
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.03);
   color: var(--text);
+  font-weight: 1000;
   text-decoration:none;
-  font-weight: 900;
-  letter-spacing: 0.35px;
-  cursor:pointer;
 }
-.pill:hover{ background: rgba(255,255,255,0.07); }
+.pill:hover{ background: rgba(255,255,255,0.06); transform: translateY(-1px); }
 
+/* Footer note */
 .footerNote{
   margin-top: 14px;
   padding: 12px 14px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--panel);
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.09);
+  background: rgba(255,255,255,0.03);
 }
-.noteTitle{
+.noteTitle{ font-weight: 1000; letter-spacing:1px; text-transform:uppercase; font-size:12px; color: rgba(255,255,255,0.80); }
+.noteBody{ margin-top:6px; color: rgba(255,255,255,0.70); font-size:13px; line-height:1.35; }
+
+/* Micro stats under center */
+.microStats{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+.chip{
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.03);
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.chipLabel{
+  font-size: 11px;
   font-weight: 1000;
-  letter-spacing: 0.5px;
-  font-size: 12px;
-  opacity: 0.75;
+  letter-spacing: 1px;
   text-transform: uppercase;
+  color: rgba(255,255,255,0.70);
 }
-.noteBody{
-  margin-top: 6px;
-  font-size: 13px;
-  opacity: 0.88;
-  line-height: 1.35;
+.chipVal{
+  font-weight: 1000;
+  color: rgba(255,255,255,0.92);
 }
-/* ==========================================================
-   GAUGE CLUSTER — PRO GAUGES (PASTE AT BOTTOM OF styles.css)
-   ========================================================== */
 
-/* Stronger instrument panel look */
+/* =========================
+   PRO GAUGE (TOTAL) — ARC + TICKS
+   ========================= */
+
 .gauge{
-  /* Inputs from JS */
-  --pct: 0.0;                 /* 0..1 */
-  --angle: -120deg;           /* needle rotation */
-  --fill: var(--ringFill);    /* zone color */
+  --pct: 0.0;
+  --angle: -120deg;
+  --fill: var(--ringFill);
 
-  /* Arc control */
-  --arcStart: 210deg;         /* bottom-left start */
-  --arcSpan: 300deg;          /* sweep (gap at bottom) */
+  --arcStart: 210deg;
+  --arcSpan: 300deg;
   --track: rgba(255,255,255,0.12);
 
   position: relative;
@@ -391,11 +310,10 @@ body{
     rgba(15, 16, 22, 0.72);
   box-shadow: 0 26px 80px rgba(0,0,0,0.58);
   padding: 14px;
-  min-height: 220px;
+  min-height: 360px;
   overflow:hidden;
 }
 
-/* Subtle glass reflection */
 .gauge::after{
   content:"";
   position:absolute; inset:-1px;
@@ -409,114 +327,64 @@ body{
   mix-blend-mode: screen;
 }
 
-/* Keep your carbon texture but make it subtle */
-.gauge::before{
-  opacity: 0.05;
-}
-
-/* Big gauge size */
-.gauge--big{
-  min-height: 360px;
-}
-
-/* Ring wrapper */
 .ring{
   position: relative;
   width: 100%;
-  height: 100%;
-  min-height: 180px;
+  height: 320px;
   display:flex;
   align-items:center;
   justify-content:center;
 }
 
-/* We’ll paint everything with pseudo layers + existing .needle/.hub */
-
-/* ARC track (base) */
 .ring::before{
   content:"";
   position:absolute;
-  width: 182px;
-  height: 182px;
+  width: 270px;
+  height: 270px;
   border-radius: 999px;
-
   background:
-    conic-gradient(
-      from var(--arcStart),
-      var(--track) var(--arcSpan),
-      transparent 0
-    );
-
-  -webkit-mask: radial-gradient(circle, transparent 61%, #000 62%);
-  mask: radial-gradient(circle, transparent 61%, #000 62%);
-
+    conic-gradient(from var(--arcStart), var(--track) var(--arcSpan), transparent 0);
+  -webkit-mask: radial-gradient(circle, transparent 64%, #000 65%);
+  mask: radial-gradient(circle, transparent 64%, #000 65%);
   filter: drop-shadow(0 0 22px rgba(0,0,0,0.60));
-  opacity: 0.95;
 }
 
-/* ARC fill (on top) */
 .ring::after{
   content:"";
   position:absolute;
-  width: 182px;
-  height: 182px;
-  border-radius: 999px;
-
-  background:
-    conic-gradient(
-      from var(--arcStart),
-      var(--fill) calc(var(--pct) * var(--arcSpan)),
-      transparent 0
-    );
-
-  -webkit-mask: radial-gradient(circle, transparent 61%, #000 62%);
-  mask: radial-gradient(circle, transparent 61%, #000 62%);
-
-  filter:
-    drop-shadow(0 0 18px rgba(140,190,255,0.20))
-    drop-shadow(0 0 42px rgba(140,190,255,0.14));
-}
-
-/* Resize arcs for big gauge */
-.gauge--big .ring::before,
-.gauge--big .ring::after{
   width: 270px;
   height: 270px;
+  border-radius: 999px;
+  background:
+    conic-gradient(from var(--arcStart), var(--fill) calc(var(--pct) * var(--arcSpan)), transparent 0);
   -webkit-mask: radial-gradient(circle, transparent 64%, #000 65%);
   mask: radial-gradient(circle, transparent 64%, #000 65%);
+  filter:
+    drop-shadow(0 0 18px rgba(96,165,255,0.22))
+    drop-shadow(0 0 46px rgba(96,165,255,0.14));
 }
 
-/* Tick marks ring (clean, subtle) */
-.ring .gaugeTicks{
+.gaugeTicks{
   position:absolute;
-  width: 214px;
-  height: 214px;
+  width: 312px;
+  height: 312px;
   border-radius: 999px;
   pointer-events:none;
-  opacity: 0.65;
+  opacity: 0.70;
   filter: drop-shadow(0 0 12px rgba(0,0,0,0.55));
   background:
-    conic-gradient(
-      from var(--arcStart),
+    conic-gradient(from var(--arcStart),
       rgba(255,255,255,0.25) 0 1deg,
       transparent 1deg 9deg
     );
-  -webkit-mask: radial-gradient(circle, transparent 67%, #000 68%);
-  mask: radial-gradient(circle, transparent 67%, #000 68%);
-}
-
-.gauge--big .ring .gaugeTicks{
-  width: 312px;
-  height: 312px;
   -webkit-mask: radial-gradient(circle, transparent 70%, #000 71%);
   mask: radial-gradient(circle, transparent 70%, #000 71%);
 }
 
-/* Inner dial face (depth) */
-.ring .dialFace{
+.dialFace{
   position:absolute;
-  width: 144px;
-  height: 144px;
+  width: 204px;
+  height: 204px;
   border-radius: 999px;
   background:
     radial-gradient(120% 120% at 30% 25%, rgba(255,255,255,0.10), transparent 55%),
@@ -526,46 +394,27 @@ body{
   box-shadow: inset 0 0 34px rgba(0,0,0,0.60);
 }
 
-.gauge--big .ring .dialFace{
-  width: 204px;
-  height: 204px;
-}
-
-/* Needle: thicker, smoother, more “real” */
 .needle{
   position:absolute;
   width: 3px;
-  height: 92px;
+  height: 132px;
   background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.62));
   border-radius: 999px;
   transform-origin: 50% 86%;
-  transform: rotate(var(--angle)) translateY(-22px);
-  box-shadow:
-    0 0 18px rgba(255,255,255,0.18),
-    0 0 34px rgba(0,0,0,0.35);
+  transform: rotate(var(--angle)) translateY(-28px);
+  box-shadow: 0 0 18px rgba(255,255,255,0.18), 0 0 34px rgba(0,0,0,0.35);
   transition: transform 420ms cubic-bezier(.2,1.0,.2,1.0);
 }
-
-.gauge--big .needle{
-  height: 132px;
-  transform: rotate(var(--angle)) translateY(-28px);
-}
-
-/* Needle tip highlight */
 .needle::after{
   content:"";
   position:absolute;
-  top: -6px;
-  left: 50%;
+  top:-6px; left:50%;
   transform: translateX(-50%);
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
+  width:7px; height:7px;
+  border-radius:999px;
   background: rgba(255,255,255,0.92);
   box-shadow: 0 0 18px rgba(255,255,255,0.32);
 }
-
-/* Hub: more premium center cap */
 .hub{
   position:absolute;
   width: 18px;
@@ -575,12 +424,9 @@ body{
     radial-gradient(circle at 30% 30%, rgba(255,255,255,0.35), rgba(255,255,255,0.10) 40%, rgba(0,0,0,0.28) 70%),
     rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.18);
-  box-shadow:
-    0 0 28px rgba(0,0,0,0.60),
-    inset 0 0 18px rgba(0,0,0,0.60);
+  box-shadow: 0 0 28px rgba(0,0,0,0.60), inset 0 0 18px rgba(0,0,0,0.60);
 }
 
-/* Center text: crisper */
 .gaugeCenter{
   position:absolute;
   inset: 0;
@@ -592,28 +438,46 @@ body{
   padding: 12px 10px;
   text-align:center;
 }
-
 .gaugeName{
   font-weight: 1000;
   letter-spacing: 1.2px;
   font-size: 11px;
-  opacity: 0.75;
+  opacity: 0.78;
   text-transform: uppercase;
 }
-
 .gaugeValue{
   font-weight: 1000;
-  font-size: 46px;
+  font-size: 72px;
   letter-spacing: 0.8px;
   text-shadow: 0 2px 18px rgba(0,0,0,0.60);
 }
-
-.gauge--big .gaugeValue{
-  font-size: 72px;
-}
-
 .gaugeMeta{
   font-size: 12px;
   opacity: 0.82;
-  font-weight: 800;
+  font-weight: 900;
+}
+
+.ticks{
+  position:absolute;
+  bottom: 16px;
+  left:0; right:0;
+  display:flex;
+  justify-content:space-between;
+  padding: 0 26px;
+  font-weight: 1000;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.68);
+  text-transform: uppercase;
+}
+
+/* Responsive */
+@media (max-width: 1100px){
+  .clusterV2{ grid-template-columns: 1fr; }
+  .center{ order:-1; }
+  .ring{ height: 300px; }
+  .gauge{ min-height: 340px; }
+}
+@media (max-width: 640px){
+  .statusBar{ grid-template-columns: 1fr 1fr; }
 }
