@@ -1,74 +1,153 @@
-/* ==========================================================
-   ENTERPRISE WAVE CARDS (OVERRIDES)
-   Paste at bottom of styles.css
-   ========================================================== */
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PTC Gauge Cluster • Live Comms Telemetry</title>
 
-.waveCard{
-  padding: 14px;
-  border-radius: 18px;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)),
-    radial-gradient(1000px 260px at 18% 10%, rgba(255,255,255,0.06), transparent 55%),
-    rgba(12, 14, 22, 0.72);
-  border: 1px solid rgba(255,255,255,0.10);
-}
+  <link rel="stylesheet" href="styles.css" />
 
-.waveTop{
-  align-items: center;
-  margin-bottom: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-}
+  <!-- MSAL for Entra sign-in (browser SPA) -->
+  <script defer src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
+  <script defer src="app.js"></script>
+</head>
 
-.waveName{
-  font-size: 15px;
-  letter-spacing: 1.6px;
-  text-transform: uppercase;
-  font-weight: 1000;
-  display:flex;
-  align-items:center;
-  gap:10px;
-  opacity: 0.92;
-}
-.waveName::before{
-  content:"";
-  width:10px;
-  height:10px;
-  border-radius:999px;
-  background: var(--accent);
-  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 55%, transparent);
-  opacity: 0.85;
-}
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">PTC</div>
+      <div class="titles">
+        <div class="title">Gauge Cluster</div>
+        <div class="subtitle">Counts only • No message content • Live telemetry</div>
+      </div>
+    </div>
 
-.waveNums{
-  display:flex;
-  flex-direction:column;
-  align-items:flex-end;
-  gap:2px;
-}
-.bigNum{
-  font-size: 44px;
-  line-height: 1;
-  font-weight: 1000;
-  letter-spacing: 0.5px;
-}
-.delta{
-  font-size: 12px;
-  letter-spacing: 0.6px;
-  font-weight: 900;
-  opacity: 0.78;
-}
+    <div class="controls">
+      <button id="btnIgnition" class="btn primary">IGNITION</button>
+      <button id="btnRefresh" class="btn" disabled>REFRESH</button>
+      <button id="btnBaseline" class="btn" disabled>TRIP RESET</button>
+      <button id="btnAuto" class="btn" disabled>AUTO: OFF</button>
+      <button id="btnSignOut" class="btn" disabled>SIGN OUT</button>
+    </div>
+  </header>
 
-.waveCanvasWrap{
-  height: 170px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.09);
-  background:
-    radial-gradient(900px 240px at 18% 20%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 60%),
-    rgba(0,0,0,0.32);
-}
+  <main class="wrap">
+    <section class="statusBar">
+      <div class="statusItem"><span class="label">Driver</span><span id="driver">—</span></div>
+      <div class="statusItem"><span class="label">Last Update</span><span id="lastUpdate">—</span></div>
+      <div class="statusItem"><span class="label">Baseline</span><span id="baselineTime">—</span></div>
+      <div class="statusItem"><span class="label">Mode</span><span id="mode">IDLE</span></div>
+    </section>
 
-/* soften the scan beam (more enterprise, less arcade) */
-.waveCanvasWrap::after{
-  opacity: 0.40;
-}
+    <section class="lights">
+      <div class="light" data-light="outlook"><div class="bulb"></div><div class="lightLabel">OUTLOOK</div></div>
+      <div class="light" data-light="slack"><div class="bulb"></div><div class="lightLabel">SLACK</div></div>
+      <div class="light" data-light="hubspot"><div class="bulb"></div><div class="lightLabel">HUBSPOT</div></div>
+      <div class="light" data-light="monday"><div class="bulb"></div><div class="lightLabel">MONDAY</div></div>
+      <div class="light danger" data-light="check"><div class="bulb"></div><div class="lightLabel">CHECK</div></div>
+    </section>
+
+    <section class="clusterV3">
+      <!-- TOTAL -->
+      <div class="totalPanel">
+        <div class="gauge gauge--big" id="g_total" data-key="total">
+          <div class="ring">
+            <div class="gaugeTicks"></div>
+            <div class="dialFace"></div>
+            <div class="needle"></div>
+            <div class="hub"></div>
+          </div>
+
+          <div class="gaugeCenter">
+            <div class="gaugeName">TOTAL</div>
+            <div class="gaugeValue" id="val_total">—</div>
+            <div class="gaugeMeta" id="meta_total">New since baseline: —</div>
+          </div>
+
+          <div class="ticks">
+            <span class="tickLabel left">IDLE</span>
+            <span class="tickLabel mid">BUSY</span>
+            <span class="tickLabel right">REDLINE</span>
+          </div>
+        </div>
+
+        <div class="microStats">
+          <div class="chip"><span class="chipLabel">POLL</span><span class="chipVal" id="pollState">IDLE</span></div>
+          <div class="chip"><span class="chipLabel">API</span><span class="chipVal" id="apiMs">—</span></div>
+          <div class="chip"><span class="chipLabel">WAVE</span><span class="chipVal">LIVE</span></div>
+        </div>
+      </div>
+
+      <!-- WAVES -->
+      <div class="wavesGrid">
+        <div class="waveCard" data-key="outlook" id="w_outlook">
+          <div class="waveTop">
+            <div class="waveName">OUTLOOK</div>
+            <div class="waveNums">
+              <div class="bigNum" id="val_outlook">—</div>
+              <div class="delta" id="meta_outlook">Since baseline: —</div>
+            </div>
+          </div>
+          <div class="waveCanvasWrap">
+            <canvas class="waveCanvas" id="cv_outlook"></canvas>
+          </div>
+        </div>
+
+        <div class="waveCard" data-key="slack" id="w_slack">
+          <div class="waveTop">
+            <div class="waveName">SLACK</div>
+            <div class="waveNums">
+              <div class="bigNum" id="val_slack">—</div>
+              <div class="delta" id="meta_slack">Since baseline: —</div>
+            </div>
+          </div>
+          <div class="waveCanvasWrap">
+            <canvas class="waveCanvas" id="cv_slack"></canvas>
+          </div>
+        </div>
+
+        <div class="waveCard" data-key="hubspot" id="w_hubspot">
+          <div class="waveTop">
+            <div class="waveName">HUBSPOT</div>
+            <div class="waveNums">
+              <div class="bigNum" id="val_hubspot">—</div>
+              <div class="delta" id="meta_hubspot">Since baseline: —</div>
+            </div>
+          </div>
+          <div class="waveCanvasWrap">
+            <canvas class="waveCanvas" id="cv_hubspot"></canvas>
+          </div>
+        </div>
+
+        <div class="waveCard" data-key="monday" id="w_monday">
+          <div class="waveTop">
+            <div class="waveName">MONDAY</div>
+            <div class="waveNums">
+              <div class="bigNum" id="val_monday">—</div>
+              <div class="delta" id="meta_monday">Since baseline: —</div>
+            </div>
+          </div>
+          <div class="waveCanvasWrap">
+            <canvas class="waveCanvas" id="cv_monday"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="linksRow">
+      <a class="pill" id="link_outlook" target="_blank" rel="noreferrer">Open Outlook</a>
+      <a class="pill" id="link_slack" target="_blank" rel="noreferrer">Open Slack</a>
+      <a class="pill" id="link_hubspot" target="_blank" rel="noreferrer">Open HubSpot</a>
+      <a class="pill" id="link_monday" target="_blank" rel="noreferrer">Open Monday</a>
+    </section>
+
+    <section class="footerNote">
+      <div class="noteTitle">How “web-page only” works</div>
+      <div class="noteBody">
+        This dashboard reads <b>folder unread counts</b> from Outlook (Inbox + your “Alerts” folders). It never reads message bodies.
+        Slack/HubSpot/Monday become count-only by routing their notification emails into Outlook folders.
+      </div>
+    </section>
+  </main>
+</body>
+</html>
