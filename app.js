@@ -11,7 +11,7 @@
 
 /* ====== CONFIG: EDIT THESE ====== */
 const CONFIG = {
-  tenantId: "YOUR_TENANT_ID_OR_DOMAIN",   // ex: "peachtreetc.com" or GUID tenant ID
+  tenantId: "bcfdd46a-c2dd-4e71-a9f8-5cd31816ff9e",   // ex: "peachtreetc.com" or GUID tenant ID
   clientId: "YOUR_CLIENT_ID",            // Entra App Registration -> Application (client) ID
 
   // Folder display names under Inbox (create these folders + Outlook rules)
