@@ -11,16 +11,19 @@
 
 /* ====== CONFIG: EDIT THESE ====== */
 const CONFIG = {
-  tenantId: "bcfdd46a-c2dd-4e71-a9f8-5cd31816ff9e",   // ex: "peachtreetc.com" or GUID tenant ID
-  clientId: "YOUR_CLIENT_ID",            // Entra App Registration -> Application (client) ID
+  tenantId: "bcfdd46a-c2dd-4e71-a9f8-5cd31816ff9e",
+  clientId: "cf321f12-ce1d-4067-b44e-05fafad8258d",
 
-  // Folder display names under Inbox (create these folders + Outlook rules)
   folders: {
-    outlook: { special: "inbox" },        // inbox is well-known
+    outlook: { special: "inbox" },
     slack:   { name: "PTC - Slack Alerts" },
     hubspot: { name: "PTC - HubSpot Alerts" },
     monday:  { name: "PTC - Monday Alerts" }
   },
+
+  // (rest of your CONFIG stays the same)
+};
+
 
   // Gauge scaling / redlines (tune this to feel right)
   scale: {
