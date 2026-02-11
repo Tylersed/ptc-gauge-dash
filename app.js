@@ -1,9 +1,10 @@
-/* =========================
+/* ==========================================================
    PTC Gauge Cluster — LIVE TELEMETRY (Static GitHub Pages)
-   - Reads unread counts only (no message bodies)
-   - TOTAL = Inbox unread + folder unread (Slack/HubSpot/Monday folders)
-   - Waves always animate; spikes on new notifications
-   ========================= */
+   - TOTAL = Outlook Inbox unread + (Slack/HubSpot/Monday Outlook folder unread)
+   - Waves = oscilloscope feed, always scrolling right->left
+   - Spikes travel left when new notifications arrive
+   - Counts only (Mail.ReadBasic), no message bodies
+   ========================================================== */
 
 /* ====== CONFIG ====== */
 const CONFIG = {
@@ -28,6 +29,7 @@ const CONFIG = {
     monday:  "https://monday.com/"
   },
 
+  // Polling interval (data pulls). Waves animate continuously regardless.
   autoRefreshSeconds: 60
 };
 /* ====== END CONFIG ====== */
@@ -42,7 +44,12 @@ let autoTimer = null;
 const $ = (id) => document.getElementById(id);
 
 function nowStr(){ return new Date().toLocaleString(); }
+function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
+function pct(value, max){ return clamp(value / Math.max(1,max), 0, 1); }
 
+/* =========================
+   UI helpers
+   ========================= */
 function setLight(name, on){
   const el = document.querySelector(`.light[data-light="${name}"]`);
   if (!el) return;
@@ -75,16 +82,31 @@ function setBaselineUI(){
   const b = getBaseline();
   $("baselineTime").textContent = b?.time ? new Date(b.time).toLocaleString() : "—";
 }
+function setBaselineFromCurrent(){
+  const current = {};
+  for (const k of ["outlook","slack","hubspot","monday"]){
+    const v = parseInt($(`val_${k}`).textContent, 10);
+    current[k] = Number.isFinite(v) ? v : 0;
+  }
+  setBaseline({ time: Date.now(), counts: current });
+  setBaselineUI();
+  refreshAll().catch(() => {});
+}
+function setAppLinks(){
+  $("link_outlook").href = CONFIG.links.outlook;
+  $("link_slack").href   = CONFIG.links.slack;
+  $("link_hubspot").href = CONFIG.links.hubspot;
+  $("link_monday").href  = CONFIG.links.monday;
+}
 
 /* =========================
-   GRAPH HELPERS
+   Graph helpers
    ========================= */
 async function graphGet(path, token){
   const res = await fetch(`${GRAPH}${path}`, { headers: { Authorization: `Bearer ${token}` } });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json();
 }
-
 async function getToken(){
   const req = { scopes: SCOPES, account: activeAccount };
   try{
@@ -95,25 +117,17 @@ async function getToken(){
     return r.accessToken;
   }
 }
-
 async function getInboxUnread(token){
   const data = await graphGet(`/me/mailFolders('inbox')?$select=unreadItemCount`, token);
   return data.unreadItemCount ?? 0;
 }
-
-/* Find folders robustly:
-   - Top-level folders
-   - Inbox childFolders
-   (covers most setups)
-*/
 async function getFolderCandidates(token){
   const [top, inboxKids] = await Promise.all([
     graphGet(`/me/mailFolders?$select=displayName,id,unreadItemCount&$top=200`, token).catch(() => ({ value: [] })),
     graphGet(`/me/mailFolders('inbox')/childFolders?$select=displayName,id,unreadItemCount&$top=200`, token).catch(() => ({ value: [] }))
   ]);
-  const list = [...(top.value || []), ...(inboxKids.value || [])];
 
-  // de-dupe by id
+  const list = [...(top.value || []), ...(inboxKids.value || [])];
   const seen = new Set();
   const out = [];
   for (const f of list){
@@ -123,7 +137,6 @@ async function getFolderCandidates(token){
   }
   return out;
 }
-
 function findFolderCount(folders, name){
   const target = (name || "").trim().toLowerCase();
   const match = folders.find(f => (f.displayName || "").trim().toLowerCase() === target);
@@ -131,14 +144,11 @@ function findFolderCount(folders, name){
 }
 
 /* =========================
-   TOTAL GAUGE (center)
+   Center TOTAL gauge
    ========================= */
-function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
-function pct(value, max){ return clamp(value / Math.max(1,max), 0, 1); }
-
-let _needle = 0; // smoothing
+let _needle = 0;
 function needleAngle(p){
-  _needle = _needle + (p - _needle) * 0.35; // damped
+  _needle = _needle + (p - _needle) * 0.35;
   const min = -120, max = 120;
   return `${min + (max-min) * _needle}deg`;
 }
@@ -168,84 +178,165 @@ function renderTotalGauge(total, delta){
   }
 }
 
-/* =========================
-   LIVE WAVES (always scanning)
-   ========================= */
-
-class Wave {
+/* ==========================================================
+   OSCILLOSCOPE WAVE ENGINE (always scrolling right->left)
+   - Uses a ring buffer of samples
+   - New samples enter on the RIGHT
+   - Old samples drift LEFT
+   - Trails + glow + “years of work” look
+   ========================================================== */
+class OscilloscopeWave {
   constructor(key, canvasId, cardId){
     this.key = key;
     this.cv = $(canvasId);
     this.card = $(cardId);
     this.ctx = this.cv.getContext("2d", { alpha: true });
 
-    this.t = 0;
-    this.speed = 0.022 + Math.random()*0.01;
-    this.ampBase = 0.18 + Math.random()*0.07;   // base motion
-    this.noise = 0.05 + Math.random()*0.03;
+    this.dpr = Math.max(1, window.devicePixelRatio || 1);
+    this.w = 0;
+    this.h = 0;
 
-    this.impulses = []; // {x, h, life}
-    this.level = 0;     // visual intensity based on count
-    this.lastValue = null;
+    // ring buffer
+    this.N = 300;                   // resolution of the wave
+    this.buf = new Float32Array(this.N);
+    this.write = 0;
 
-    this.resize();
-    window.addEventListener("resize", () => this.resize());
+    // timing
+    this.acc = 0;
+    this.sampleHz = 90;             // how fast new samples enter (controls scroll speed)
+    this.sampleDt = 1 / this.sampleHz;
+
+    // motion
+    this.phase = Math.random() * 1000;
+    this.phase2 = Math.random() * 1000;
+
+    // level drives intensity (based on unread count)
+    this.level = 0;                 // 0..1
+    this.pendingSpikes = 0;         // integer spikes queued
+    this.spikeTail = 0;             // decay tail for nicer spikes
+
+    // accent from CSS
+    this.accent = this._getAccent();
+
+    this._resize();
+    window.addEventListener("resize", () => {
+      this.dpr = Math.max(1, window.devicePixelRatio || 1);
+      this._resize();
+    });
+
+    // start with a visible line even before any data pulls
+    for (let i=0;i<this.N;i++){
+      this.buf[i] = (Math.sin(i*0.08) * 0.08);
+    }
   }
 
-  resize(){
-    const dpr = Math.max(1, window.devicePixelRatio || 1);
+  _getAccent(){
+    try{
+      const v = getComputedStyle(this.card).getPropertyValue("--accent").trim();
+      return v || "rgba(96,165,255,1)";
+    }catch{
+      return "rgba(96,165,255,1)";
+    }
+  }
+
+  _resize(){
     const rect = this.cv.getBoundingClientRect();
-    this.cv.width = Math.floor(rect.width * dpr);
-    this.cv.height = Math.floor(rect.height * dpr);
-    this.ctx.setTransform(dpr,0,0,dpr,0,0); // draw in CSS pixels
+    this.w = Math.max(1, rect.width);
+    this.h = Math.max(1, rect.height);
+
+    this.cv.width = Math.floor(this.w * this.dpr);
+    this.cv.height = Math.floor(this.h * this.dpr);
+
+    // draw in CSS pixels
+    this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
+
+    // clear hard once on resize
+    this.ctx.clearRect(0,0,this.w,this.h);
   }
 
-  setValue(v){
-    // Smoothly influence amplitude (not reading content; just counts)
-    const vv = Number.isFinite(v) ? v : 0;
-    this.level = this.level + (Math.min(1, vv/40) - this.level) * 0.15;
+  setCount(count){
+    const c = Number.isFinite(count) ? count : 0;
+    const target = clamp(c / 55, 0, 1);           // tune mapping
+    this.level = this.level + (target - this.level) * 0.10;
   }
 
   spike(delta){
-    const d = Math.max(1, Math.min(20, delta|0));
-    const h = 0.55 + Math.min(1.2, d * 0.08); // bigger delta = bigger spike
-    // create 1–3 impulses depending on delta
-    const bursts = d >= 6 ? 3 : (d >= 3 ? 2 : 1);
-    for (let i=0;i<bursts;i++){
-      this.impulses.push({ x: 1.0 + i*0.03, h: h*(1 - i*0.12), life: 1.0 });
-    }
-    // card pulse
+    const d = Math.max(1, Math.min(25, delta|0));
+    this.pendingSpikes += d;
+
     if (this.card){
       this.card.classList.remove("pulse");
-      // force reflow so animation re-triggers
       void this.card.offsetWidth;
       this.card.classList.add("pulse");
     }
   }
 
-  draw(){
+  _pushSample(v){
+    this.buf[this.write] = v;
+    this.write = (this.write + 1) % this.N;
+  }
+
+  _nextSample(dt){
+    // baseline motion (always moving even at 0)
+    const baseAmp = 0.10 + this.level * 0.26;
+    const f1 = 0.90 + this.level * 0.60;
+    const f2 = 0.55 + this.level * 0.40;
+
+    this.phase += dt * (4.6 + this.level * 4.2);
+    this.phase2 += dt * (2.8 + this.level * 2.0);
+
+    const s1 = Math.sin(this.phase * f1) * 0.62;
+    const s2 = Math.sin(this.phase2 * f2) * 0.38;
+
+    // deterministic-ish noise (no RNG flicker)
+    const n = Math.sin((this.phase * 3.7) + (this.phase2 * 1.9)) * 0.14;
+
+    // spikes: sharp attack, slow decay, and they travel left as samples scroll
+    let spike = 0;
+    if (this.pendingSpikes > 0){
+      spike = 1.25 + Math.min(1.2, this.pendingSpikes * 0.02);
+      this.pendingSpikes -= 1;
+      this.spikeTail = Math.max(this.spikeTail, spike);
+    }
+    this.spikeTail *= 0.88; // decay
+    spike += this.spikeTail * 0.20;
+
+    // final sample in -1..1
+    // spike is positive => wave goes UP on screen (we subtract later)
+    const v = clamp(((s1+s2+n) * baseAmp) + (spike * 0.75), -1.2, 1.6);
+    this._pushSample(v);
+  }
+
+  step(dt){
+    // update accent in case theme changes
+    this.accent = this._getAccent();
+
+    // generate new samples at fixed Hz (controls scroll)
+    this.acc += dt;
+    while (this.acc >= this.sampleDt){
+      this._nextSample(this.sampleDt);
+      this.acc -= this.sampleDt;
+    }
+  }
+
+  render(){
     const ctx = this.ctx;
-    const w = this.cv.getBoundingClientRect().width;
-    const h = this.cv.getBoundingClientRect().height;
+    const w = this.w;
+    const h = this.h;
 
-    // Clear
-    ctx.clearRect(0,0,w,h);
-
-    // Background glow band
-    const mid = h * 0.55;
+    // TRAILS: fade old frames slightly (professional oscilloscope look)
     ctx.save();
-    ctx.globalAlpha = 0.9;
-    const grad = ctx.createLinearGradient(0, mid-40, 0, mid+40);
-    grad.addColorStop(0, "rgba(96,165,255,0.00)");
-    grad.addColorStop(0.5, "rgba(96,165,255,0.06)");
-    grad.addColorStop(1, "rgba(96,165,255,0.00)");
-    ctx.fillStyle = grad;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.fillStyle = "rgba(0,0,0,0.18)";
     ctx.fillRect(0,0,w,h);
     ctx.restore();
 
-    // Axis line
+    const mid = h * 0.55;
+    const ampPx = (h * 0.33) * (0.55 + this.level * 0.75);
+
+    // draw faint baseline
     ctx.save();
-    ctx.strokeStyle = "rgba(255,255,255,0.10)";
+    ctx.strokeStyle = "rgba(255,255,255,0.08)";
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, mid);
@@ -253,99 +344,100 @@ class Wave {
     ctx.stroke();
     ctx.restore();
 
-    // Wave parameters
-    const baseAmp = (h * 0.20) * (this.ampBase + this.level * 0.55);
-    const freq = 0.035 + this.level * 0.015;
+    // Wave path: oldest on left, newest on right
+    const sampleAt = (i) => this.buf[(this.write + i) % this.N];
 
-    // Move impulses left
-    for (const imp of this.impulses){
-      imp.x -= 0.016;     // left motion
-      imp.life -= 0.012;  // decay
-    }
-    this.impulses = this.impulses.filter(i => i.life > 0 && i.x > -0.2);
-
-    // Draw neon line (glow + core)
-    const drawLine = (alpha, width, color) => {
+    // Glow layers (lighter blend)
+    const drawWave = (lineW, alpha, color) => {
       ctx.save();
+      ctx.globalCompositeOperation = "lighter";
       ctx.globalAlpha = alpha;
-      ctx.lineWidth = width;
+      ctx.lineWidth = lineW;
       ctx.strokeStyle = color;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
       ctx.beginPath();
 
       for (let x=0; x<=w; x++){
-        const nx = x / w;
+        const t = x / w;
+        const idx = Math.floor(t * (this.N - 1));
+        const v = sampleAt(idx);
 
-        // base wave
-        const s1 = Math.sin((this.t + nx*12) * (1/freq)) * 0.55;
-        const s2 = Math.sin((this.t*1.8 + nx*18) * (1/(freq*1.2))) * 0.35;
-
-        // noise
-        const n = (Math.sin((this.t*3.1 + nx*44)) * this.noise);
-
-        // impulse spike (Gaussian-ish peak)
-        let spike = 0;
-        for (const imp of this.impulses){
-          const dx = (nx - imp.x);
-          spike += Math.exp(-(dx*dx) / 0.0025) * imp.h * imp.life;
-        }
-
-        const y = mid + (s1+s2+n) * baseAmp - spike * (h*0.28);
+        // v positive should go UP (smaller y)
+        const y = mid - (v * ampPx);
 
         if (x === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }
-
       ctx.stroke();
       ctx.restore();
     };
 
-    // color shifts when level is high
-    const accent = (this.level > 0.75) ? "rgba(255,204,102,0.95)"
-                 : (this.level > 0.90) ? "rgba(255,77,109,0.95)"
-                 : "rgba(96,165,255,0.95)";
+    // outer bloom
+    drawWave(10, 0.10, this.accent);
+    drawWave(6,  0.16, this.accent);
 
-    // outer glow
-    drawLine(0.20, 6, "rgba(96,165,255,0.75)");
-    drawLine(0.16, 10, "rgba(96,165,255,0.35)");
-    // core
-    drawLine(0.95, 2.2, accent);
+    // crisp core
+    drawWave(2.2, 0.92, "rgba(255,255,255,0.95)");
+    drawWave(1.6, 0.92, this.accent);
 
-    // Update time
-    this.t += this.speed;
+    // “spark” dot at the newest point (right edge) for wow
+    const newest = this.buf[(this.write + this.N - 1) % this.N];
+    const yN = mid - (newest * ampPx);
+
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = this.accent;
+    ctx.beginPath();
+    ctx.arc(w - 3, yN, 3.2, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.globalAlpha = 0.25;
+    ctx.beginPath();
+    ctx.arc(w - 3, yN, 10, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
   }
-}
-
-const WAVES = {
-  outlook: null,
-  slack: null,
-  hubspot: null,
-  monday: null
-};
-
-function initWaves(){
-  WAVES.outlook = new Wave("outlook", "cv_outlook", "w_outlook");
-  WAVES.slack   = new Wave("slack",   "cv_slack",   "w_slack");
-  WAVES.hubspot = new Wave("hubspot", "cv_hubspot", "w_hubspot");
-  WAVES.monday  = new Wave("monday",  "cv_monday",  "w_monday");
-}
-
-function waveLoop(){
-  for (const k of ["outlook","slack","hubspot","monday"]){
-    WAVES[k]?.draw();
-  }
-  requestAnimationFrame(waveLoop);
 }
 
 /* =========================
-   COUNTS + DELTAS + UI
+   Waves init + animation loop
    ========================= */
+const WAVES = {};
+let _lastFrame = performance.now();
 
+function initWaves(){
+  WAVES.outlook = new OscilloscopeWave("outlook", "cv_outlook", "w_outlook");
+  WAVES.slack   = new OscilloscopeWave("slack",   "cv_slack",   "w_slack");
+  WAVES.hubspot = new OscilloscopeWave("hubspot", "cv_hubspot", "w_hubspot");
+  WAVES.monday  = new OscilloscopeWave("monday",  "cv_monday",  "w_monday");
+}
+
+function animate(){
+  const now = performance.now();
+  const dt = Math.min(0.05, (now - _lastFrame) / 1000);
+  _lastFrame = now;
+
+  for (const k of ["outlook","slack","hubspot","monday"]){
+    const w = WAVES[k];
+    if (!w) continue;
+    w.step(dt);
+    w.render();
+  }
+  requestAnimationFrame(animate);
+}
+
+/* =========================
+   Counts + deltas
+   ========================= */
 function computeTotals(c){
   return (c.outlook||0)+(c.slack||0)+(c.hubspot||0)+(c.monday||0);
 }
 function computeDeltas(counts){
   const b = getBaseline();
   if (!b?.counts) return { deltas: null, baseline: null };
+
   const deltas = {};
   for (const k of ["outlook","slack","hubspot","monday"]){
     const base = Number.isFinite(b.counts[k]) ? b.counts[k] : 0;
@@ -355,14 +447,12 @@ function computeDeltas(counts){
   deltas.total = deltas.outlook + deltas.slack + deltas.hubspot + deltas.monday;
   return { deltas, baseline: b };
 }
-
 function updateLights(counts){
   setLight("outlook", (counts.outlook||0) > 0);
   setLight("slack",   (counts.slack||0) > 0);
   setLight("hubspot", (counts.hubspot||0) > 0);
   setLight("monday",  (counts.monday||0) > 0);
 }
-
 function updateBusyMode(total){
   const red = CONFIG.scale.redline.total;
   if (total >= red) setMode("REDLINE");
@@ -371,27 +461,6 @@ function updateBusyMode(total){
   else setMode("IDLE");
 }
 
-function setAppLinks(){
-  $("link_outlook").href = CONFIG.links.outlook;
-  $("link_slack").href   = CONFIG.links.slack;
-  $("link_hubspot").href = CONFIG.links.hubspot;
-  $("link_monday").href  = CONFIG.links.monday;
-}
-
-function setBaselineFromCurrent(){
-  const current = {};
-  for (const k of ["outlook","slack","hubspot","monday"]){
-    const v = parseInt($(`val_${k}`).textContent, 10);
-    current[k] = Number.isFinite(v) ? v : 0;
-  }
-  setBaseline({ time: Date.now(), counts: current });
-  setBaselineUI();
-  refreshAll().catch(() => {});
-}
-
-/* =========================
-   REFRESH LOOP (data pulls)
-   ========================= */
 let lastCounts = { outlook: null, slack: null, hubspot: null, monday: null };
 
 async function refreshAll(){
@@ -413,34 +482,33 @@ async function refreshAll(){
     };
     counts.total = computeTotals(counts);
 
-    // Write numbers
+    // numbers
     $("val_outlook").textContent = String(counts.outlook);
     $("val_slack").textContent = String(counts.slack);
     $("val_hubspot").textContent = String(counts.hubspot);
     $("val_monday").textContent = String(counts.monday);
 
-    // Deltas
+    // deltas from baseline
     const { deltas } = computeDeltas(counts);
     const fmt = (v, key) => {
       if (v == null) return key === "total" ? "New since baseline: —" : "Since baseline: —";
       const sign = v > 0 ? "+" : "";
       return key === "total" ? `New since baseline: ${sign}${v}` : `Since baseline: ${sign}${v}`;
     };
-
     $("meta_outlook").textContent = fmt(deltas?.outlook ?? null, "outlook");
-    $("meta_slack").textContent = fmt(deltas?.slack ?? null, "slack");
+    $("meta_slack").textContent   = fmt(deltas?.slack ?? null, "slack");
     $("meta_hubspot").textContent = fmt(deltas?.hubspot ?? null, "hubspot");
-    $("meta_monday").textContent = fmt(deltas?.monday ?? null, "monday");
+    $("meta_monday").textContent  = fmt(deltas?.monday ?? null, "monday");
 
-    // TOTAL gauge
+    // total gauge
     renderTotalGauge(counts.total, deltas?.total ?? null);
 
-    // Wave behavior: always animate; spike on NEW notifications
+    // wave intensity + spikes that travel left
     for (const k of ["outlook","slack","hubspot","monday"]){
       const prev = Number.isFinite(lastCounts[k]) ? lastCounts[k] : null;
       const cur  = counts[k] ?? 0;
 
-      WAVES[k]?.setValue(cur);
+      WAVES[k]?.setCount(cur);
 
       if (prev != null && cur > prev){
         WAVES[k]?.spike(cur - prev);
@@ -466,15 +534,13 @@ async function refreshAll(){
 }
 
 /* =========================
-   AUTH
+   Auth
    ========================= */
 async function signIn(){
   const loginReq = { scopes: SCOPES };
 
-  // Handle any redirect response safely
   await msalApp.handleRedirectPromise().catch(() => null);
 
-  // Already signed in?
   const existing = msalApp.getAllAccounts();
   if (existing?.length){
     activeAccount = existing[0];
@@ -504,21 +570,23 @@ async function signIn(){
 async function signOut(){
   const acc = activeAccount;
   activeAccount = null;
+
   setButtons(false);
   setDriver("—");
   setMode("IDLE");
   setUpdateTime("—");
   setBaselineUI();
 
-  // reset UI
   $("val_total").textContent = "—";
   $("meta_total").textContent = "New since baseline: —";
+
   for (const k of ["outlook","slack","hubspot","monday"]){
     $(`val_${k}`).textContent = "—";
     $(`meta_${k}`).textContent = "Since baseline: —";
     lastCounts[k] = null;
-    WAVES[k]?.setValue(0);
+    WAVES[k]?.setCount(0);
   }
+
   setLight("outlook", false);
   setLight("slack", false);
   setLight("hubspot", false);
@@ -550,12 +618,12 @@ function toggleAuto(){
 }
 
 /* =========================
-   INIT
+   Init
    ========================= */
 window.addEventListener("load", () => {
   setAppLinks();
   initWaves();
-  requestAnimationFrame(waveLoop);
+  requestAnimationFrame(animate);
 
   const msalConfig = {
     auth: {
