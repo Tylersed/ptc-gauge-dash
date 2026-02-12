@@ -10,72 +10,106 @@
 
   <style>
     :root{
-      --bg0:#070910;
-      --bg1:#0b1020;
-      --panel: rgba(255,255,255,0.035);
-      --panel2: rgba(255,255,255,0.05);
-      --stroke: rgba(255,255,255,0.10);
-      --stroke2: rgba(255,255,255,0.16);
-      --text: rgba(255,255,255,0.92);
-      --muted: rgba(255,255,255,0.68);
-      --soft: rgba(255,255,255,0.55);
+      /* ===== PTC LINKS HUB THEME (Brand) ===== */
+      --bg0:#000000; /* True Black */
+      --bg1:#222422; /* Iron Ore */
+
+      /* Glass surfaces */
+      --glass1: rgba(34, 36, 34, 0.56);
+      --glass2: rgba(34, 36, 34, 0.78);
+
+      /* Borders (Ivory outlines) */
+      --border1: rgba(245,244,239,0.14);
+      --border2: rgba(245,244,239,0.10);
+
+      /* Text */
+      --text:#FFFFFF;
+      --muted: rgba(245,244,239,0.78);
+      --muted2: rgba(245,244,239,0.58);
+
+      /* Chips */
+      --chipBg: rgba(0,0,0,.18);
+      --chipBorder: rgba(245,244,239,.14);
+      --chipText: rgba(245,244,239,.84);
+
+      /* Layout */
       --radius: 18px;
 
-      --ptc: #60a5ff;
-      --ok:   #60a5ff;
-      --warn: #ffcc66;
-      --bad:  #ff4d6d;
-      --teal: #5eead4;
-      --vio:  #a78bfa;
+      /* Status / bars (keep as-is) */
+      --ok:   rgba(96,165,255,0.78);
+      --warn: rgba(255,204,102,0.80);
+      --bad:  rgba(255,77,109,0.82);
+      --idle: rgba(245,244,239,0.26);
     }
 
     *{ box-sizing:border-box; }
     html,body{ height:100%; }
+
     body{
       margin:0;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
       color: var(--text);
       background:
-        radial-gradient(1200px 700px at 18% 8%, rgba(96,165,255,0.14), transparent 60%),
-        radial-gradient(900px 600px at 88% 20%, rgba(255,77,109,0.08), transparent 62%),
-        radial-gradient(900px 500px at 55% 110%, rgba(94,234,212,0.06), transparent 60%),
+        radial-gradient(1100px 650px at 16% 8%, rgba(245,244,239,0.10), transparent 62%),
+        radial-gradient(900px 600px at 86% 18%, rgba(245,244,239,0.06), transparent 64%),
+        radial-gradient(900px 520px at 55% 112%, rgba(255,255,255,0.05), transparent 60%),
         linear-gradient(180deg, var(--bg0), var(--bg1));
       overflow-x:hidden;
     }
 
-    /* subtle “enterprise grid” */
+    /* subtle grid */
     body::before{
       content:"";
       position:fixed; inset:0;
       background-image:
-        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
-      background-size: 52px 52px;
-      opacity: 0.08;
+        linear-gradient(rgba(245,244,239,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(245,244,239,0.06) 1px, transparent 1px);
+      background-size: 56px 56px;
+      opacity: 0.07;
       pointer-events:none;
-      filter: blur(0.2px);
+      filter: blur(0.25px);
+    }
+
+    /* white sparkles */
+    body::after{
+      content:"";
+      position:fixed; inset:0;
+      pointer-events:none;
+      background:
+        radial-gradient(2px 2px at 12% 18%, rgba(255,255,255,0.55), transparent 60%),
+        radial-gradient(1.5px 1.5px at 22% 58%, rgba(255,255,255,0.45), transparent 60%),
+        radial-gradient(2px 2px at 36% 30%, rgba(255,255,255,0.38), transparent 60%),
+        radial-gradient(1.5px 1.5px at 44% 72%, rgba(255,255,255,0.32), transparent 60%),
+        radial-gradient(2px 2px at 58% 20%, rgba(255,255,255,0.42), transparent 60%),
+        radial-gradient(1.5px 1.5px at 66% 62%, rgba(255,255,255,0.30), transparent 60%),
+        radial-gradient(2px 2px at 78% 34%, rgba(255,255,255,0.36), transparent 60%),
+        radial-gradient(1.5px 1.5px at 84% 78%, rgba(255,255,255,0.28), transparent 60%),
+        radial-gradient(2px 2px at 92% 50%, rgba(255,255,255,0.33), transparent 60%);
+      opacity: 0.45;
     }
 
     .topbar{
       position: sticky; top:0; z-index:50;
       display:flex; justify-content:space-between; align-items:center;
       padding: 14px 18px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      background: rgba(8,10,16,0.78);
-      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border2);
+      background: rgba(0,0,0,0.52);
+      backdrop-filter: blur(12px);
     }
+
     .brand{ display:flex; align-items:center; gap:12px; }
+
     .logo{
       width:46px; height:46px; display:grid; place-items:center;
       border-radius: 14px;
       font-weight:1000; letter-spacing:1px;
-      background:
-        radial-gradient(120% 120% at 30% 30%, rgba(255,255,255,0.18), transparent 55%),
-        rgba(96,165,255,0.14);
-      border: 1px solid rgba(96,165,255,0.30);
+      background: linear-gradient(180deg, rgba(255,255,255,.95), rgba(245,244,239,.92));
+      color:#111;
+      border: 1px solid rgba(245,244,239,0.30);
       box-shadow: 0 14px 40px rgba(0,0,0,0.55);
       user-select:none;
     }
+
     .titles .title{
       font-weight:1000;
       letter-spacing:0.8px;
@@ -89,28 +123,33 @@
     }
 
     .controls{ display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+
     .btn{
       padding: 10px 12px;
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.04);
-      color: var(--text);
+      border: 1px solid var(--border1);
+      background: rgba(0,0,0,0.18);
+      color: rgba(245,244,239,0.92);
       font-weight: 950;
       letter-spacing:0.7px;
       cursor:pointer;
       transition: transform .12s ease, background .12s ease, border-color .12s ease, opacity .12s ease;
     }
-    .btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.06); }
+    .btn:hover{
+      transform: translateY(-1px);
+      background: rgba(245,244,239,0.06);
+      border-color: rgba(245,244,239,0.18);
+    }
     .btn:disabled{ opacity:0.45; cursor:not-allowed; transform:none; }
+
     .btn.primary{
-      background: rgba(96,165,255,0.16);
-      border-color: rgba(96,165,255,0.34);
-      box-shadow: 0 0 0 1px rgba(96,165,255,0.10) inset, 0 18px 44px rgba(0,0,0,0.55);
+      background: rgba(245,244,239,0.08);
+      border-color: rgba(245,244,239,0.22);
+      box-shadow: 0 0 0 1px rgba(245,244,239,0.08) inset, 0 18px 44px rgba(0,0,0,0.55);
     }
 
     .wrap{ max-width: 1280px; margin: 18px auto 70px; padding: 0 14px; }
 
-    /* Portal layout (PTC link-hub vibe) */
     .layout{
       display:grid;
       grid-template-columns: 300px 1fr;
@@ -123,68 +162,73 @@
 
     .panel{
       border-radius: var(--radius);
-      border: 1px solid var(--stroke);
-      background:
-        linear-gradient(180deg, var(--panel2), var(--panel)),
-        radial-gradient(900px 260px at 18% 10%, rgba(255,255,255,0.06), transparent 55%),
-        rgba(12, 14, 22, 0.74);
+      border: 1px solid var(--border2);
+      background: linear-gradient(180deg, var(--glass1), var(--glass2));
       box-shadow: 0 26px 86px rgba(0,0,0,0.55);
       overflow:hidden;
     }
+
     .panelHeader{
       padding: 14px 14px 12px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
+      border-bottom: 1px solid rgba(245,244,239,0.10);
       display:flex;
       justify-content:space-between;
       align-items:center;
       gap: 10px;
     }
+
     .panelTitle{
       font-size: 12px;
       letter-spacing: 1.7px;
       text-transform: uppercase;
       font-weight: 1000;
-      color: rgba(255,255,255,0.86);
+      color: rgba(245,244,239,0.92);
       display:flex; align-items:center; gap:10px;
     }
+
     .panelTitle::before{
       content:"";
       width:10px; height:10px; border-radius: 999px;
-      background: rgba(96,165,255,0.85);
-      box-shadow: 0 0 18px rgba(96,165,255,0.22);
+      background: rgba(245,244,239,0.70);
+      box-shadow: 0 0 18px rgba(245,244,239,0.12);
     }
+
     .panelBody{ padding: 14px; }
 
-    /* Left “PTC link hub” sidebar */
+    /* sidebar status */
     .statusGrid{
       display:grid;
       grid-template-columns: 1fr;
       gap: 10px;
     }
+
     .stat{
-      border: 1px solid rgba(255,255,255,0.10);
+      border: 1px solid rgba(245,244,239,0.12);
       border-radius: 14px;
-      background: rgba(255,255,255,0.03);
+      background: rgba(0,0,0,0.18);
       padding: 10px 12px;
     }
+
     .statLabel{
       font-size:11px;
-      color: var(--muted);
+      color: var(--muted2);
       letter-spacing:1px;
       font-weight:950;
       text-transform:uppercase;
     }
+
     .statValue{
       margin-top: 4px;
       font-weight: 1000;
       font-size: 13px;
-      color: rgba(255,255,255,0.92);
+      color: rgba(245,244,239,0.92);
       word-break: break-word;
     }
+
     .statSub{
       margin-top: 6px;
       font-size: 11px;
-      color: rgba(255,255,255,0.58);
+      color: var(--muted2);
       letter-spacing: 0.6px;
     }
 
@@ -194,6 +238,7 @@
       gap: 10px;
       margin-top: 12px;
     }
+
     .linkBtn{
       display:flex;
       align-items:center;
@@ -201,22 +246,24 @@
       gap: 10px;
       padding: 12px 12px;
       border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.11);
-      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border1);
+      background: rgba(0,0,0,0.18);
       text-decoration:none;
-      color: var(--text);
+      color: rgba(245,244,239,0.94);
       font-weight: 950;
       letter-spacing: 0.6px;
       transition: transform .12s ease, background .12s ease, border-color .12s ease;
     }
+
     .linkBtn:hover{
-      background: rgba(255,255,255,0.06);
+      background: rgba(245,244,239,0.06);
       transform: translateY(-1px);
-      border-color: rgba(255,255,255,0.18);
+      border-color: rgba(245,244,239,0.18);
     }
+
     .linkMeta{
       font-size: 11px;
-      color: rgba(255,255,255,0.62);
+      color: rgba(245,244,239,0.72);
       font-weight: 900;
       letter-spacing: 1px;
       text-transform: uppercase;
@@ -226,65 +273,74 @@
       margin-top: 12px;
       padding: 12px 12px;
       border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.03);
-      color: rgba(255,255,255,0.70);
+      border: 1px solid rgba(245,244,239,0.12);
+      background: rgba(0,0,0,0.18);
+      color: rgba(245,244,239,0.74);
       font-size: 12.5px;
       line-height: 1.35;
     }
-    .scopeNote b{ color: rgba(255,255,255,0.90); }
+    .scopeNote b{ color: rgba(245,244,239,0.92); }
 
-    /* Main dashboard */
+    /* main header */
     .dashHeaderRow{
       display:flex;
       justify-content:space-between;
       align-items:center;
       gap: 12px;
       padding: 14px 14px 12px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
+      border-bottom: 1px solid rgba(245,244,239,0.10);
     }
+
     .dashHeaderTitle{
       display:flex; flex-direction:column; gap:4px;
     }
+
     .dashHeaderTitle .h1{
       font-size: 14px;
       font-weight: 1000;
       letter-spacing: 1.6px;
       text-transform: uppercase;
+      color: rgba(245,244,239,0.92);
     }
+
     .dashHeaderTitle .h2{
       font-size: 12px;
-      color: rgba(255,255,255,0.66);
+      color: var(--muted);
     }
 
     .badges{ display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+
     .badge{
       padding: 8px 10px;
       border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.11);
-      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--chipBorder);
+      background: var(--chipBg);
       font-weight: 1000;
       font-size: 11px;
       letter-spacing: 1px;
       text-transform: uppercase;
-      color: rgba(255,255,255,0.78);
+      color: var(--chipText);
       white-space:nowrap;
     }
 
+    /* dashboard cards */
     .grid{
       display:grid;
       grid-template-columns: repeat(12, minmax(0,1fr));
       gap: 14px;
       padding: 14px;
     }
+
     .card{
       grid-column: span 6;
       border-radius: var(--radius);
-      border: 1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(245,244,239,0.10);
+      background: rgba(0,0,0,0.18);
       overflow:hidden;
     }
+
     .card.total{ grid-column: span 12; }
+
     @media (min-width: 1120px){
       .card.total{ grid-column: span 8; }
       .card.outlook{ grid-column: span 4; }
@@ -296,31 +352,36 @@
 
     .cardHead{
       padding: 14px 14px 12px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
+      border-bottom: 1px solid rgba(245,244,239,0.10);
       display:flex;
       justify-content:space-between;
       align-items:flex-start;
       gap: 12px;
     }
+
     .nameStack{ display:flex; flex-direction:column; gap:4px; }
+
     .cardName{
       font-size: 14px;
       font-weight: 1000;
-      letter-spacing: 1.8px;
+      letter-spacing: 2.0px;
       text-transform: uppercase;
       display:flex;
       align-items:center;
       gap:10px;
+      color: rgba(245,244,239,0.94);
     }
+
     .dot{
       width:10px; height:10px;
       border-radius:999px;
-      background: rgba(255,255,255,0.22);
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.10) inset;
+      background: rgba(245,244,239,0.42);
+      box-shadow: 0 0 0 1px rgba(245,244,239,0.10) inset;
     }
+
     .cardHint{
       font-size: 12px;
-      color: rgba(255,255,255,0.62);
+      color: rgba(245,244,239,0.62);
     }
 
     .pill{
@@ -330,9 +391,9 @@
       letter-spacing: 1px;
       font-size: 11px;
       text-transform: uppercase;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.04);
-      color: rgba(255,255,255,0.86);
+      border: 1px solid var(--chipBorder);
+      background: var(--chipBg);
+      color: rgba(245,244,239,0.86);
       white-space: nowrap;
     }
 
@@ -343,32 +404,34 @@
       line-height: 1.05;
       font-weight: 1000;
       letter-spacing: 0.6px;
+      color: rgba(245,244,239,0.96);
     }
     .total .big{ font-size: 68px; }
+
     .meta{
       margin-top: 6px;
       font-size: 12px;
       font-weight: 900;
-      color: rgba(255,255,255,0.70);
+      color: rgba(245,244,239,0.70);
     }
 
     .bar{
       margin-top: 12px;
       height: 11px;
       border-radius: 999px;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0,0,0,0.22);
+      border: 1px solid rgba(245,244,239,0.10);
       overflow:hidden;
     }
     .barFill{
       height: 100%;
       width: calc(var(--p, 0) * 100%);
       border-radius: 999px;
-      background: rgba(96,165,255,0.78);
+      background: var(--ok);
       transition: width .25s ease, background .18s ease;
     }
 
-    /* Total breakdown chips (looks like an enterprise widget) */
+    /* breakdown chips */
     .breakdown{
       margin-top: 12px;
       display:grid;
@@ -378,69 +441,62 @@
     @media (max-width: 1120px){
       .breakdown{ grid-template-columns: 1fr 1fr; }
     }
+
     .chip{
-      border: 1px solid rgba(255,255,255,0.08);
+      border: 1px solid rgba(245,244,239,0.10);
       border-radius: 14px;
       padding: 10px 10px;
-      background: rgba(255,255,255,0.02);
+      background: rgba(0,0,0,0.18);
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap: 10px;
-      color: rgba(255,255,255,0.78);
+      color: rgba(245,244,239,0.78);
       font-size: 12px;
     }
     .chip b{
       font-size: 14px;
-      color: rgba(255,255,255,0.92);
+      color: rgba(245,244,239,0.92);
       letter-spacing: 0.4px;
     }
 
-    /* Status coloring (professional, not “arcade”) */
-    .card[data-status="idle"] .pill{ opacity:0.85; }
+    /* status affects pill + bar only */
+    .card[data-status="idle"] .pill{ opacity:0.86; }
     .card[data-status="ok"] .pill{
-      border-color: rgba(96,165,255,0.40);
-      background: rgba(96,165,255,0.12);
+      border-color: rgba(96,165,255,0.22);
+      background: rgba(96,165,255,0.08);
     }
     .card[data-status="warn"] .pill{
-      border-color: rgba(255,204,102,0.45);
-      background: rgba(255,204,102,0.12);
+      border-color: rgba(255,204,102,0.24);
+      background: rgba(255,204,102,0.08);
     }
     .card[data-status="bad"] .pill{
-      border-color: rgba(255,77,109,0.50);
-      background: rgba(255,77,109,0.12);
+      border-color: rgba(255,77,109,0.26);
+      background: rgba(255,77,109,0.08);
     }
 
-    .card[data-status="idle"] .barFill{ background: rgba(255,255,255,0.24); }
-    .card[data-status="ok"] .barFill{ background: rgba(96,165,255,0.78); }
-    .card[data-status="warn"] .barFill{ background: rgba(255,204,102,0.80); }
-    .card[data-status="bad"] .barFill{ background: rgba(255,77,109,0.82); }
+    .card[data-status="idle"] .barFill{ background: var(--idle); }
+    .card[data-status="ok"] .barFill{ background: var(--ok); }
+    .card[data-status="warn"] .barFill{ background: var(--warn); }
+    .card[data-status="bad"] .barFill{ background: var(--bad); }
 
-    .card[data-key="outlook"] .dot{ background: rgba(96,165,255,0.85); box-shadow: 0 0 18px rgba(96,165,255,0.18); }
-    .card[data-key="slack"] .dot{ background: rgba(167,139,250,0.85); box-shadow: 0 0 18px rgba(167,139,250,0.14); }
-    .card[data-key="hubspot"] .dot{ background: rgba(255,204,102,0.88); box-shadow: 0 0 18px rgba(255,204,102,0.14); }
-    .card[data-key="monday"] .dot{ background: rgba(94,234,212,0.85); box-shadow: 0 0 18px rgba(94,234,212,0.12); }
-    .card[data-key="total"] .dot{ background: rgba(255,255,255,0.78); box-shadow: 0 0 18px rgba(255,255,255,0.10); }
-
-    /* subtle “updated” flash (only when value changes) */
     .card.flash{
-      border-color: rgba(255,255,255,0.22);
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.06) inset, 0 26px 86px rgba(0,0,0,0.55);
+      border-color: rgba(245,244,239,0.22);
+      box-shadow: 0 0 0 1px rgba(245,244,239,0.06) inset;
       transition: border-color .35s ease;
     }
 
-    /* Footer note */
     .footerNote{
       margin-top: 14px;
       padding: 12px 14px;
       border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.03);
-      color: rgba(255,255,255,0.70);
+      border: 1px solid rgba(245,244,239,0.12);
+      background: rgba(0,0,0,0.18);
+      color: rgba(245,244,239,0.72);
       font-size: 12.5px;
       line-height: 1.35;
     }
-    .footerNote b{ color: rgba(255,255,255,0.92); }
+    .footerNote b{ color: rgba(245,244,239,0.92); }
   </style>
 </head>
 
@@ -465,12 +521,10 @@
 
   <main class="wrap">
     <section class="layout">
-
-      <!-- LEFT: PTC link hub style sidebar -->
+      <!-- LEFT -->
       <aside class="panel">
         <div class="panelHeader">
           <div class="panelTitle">Status</div>
-          <span class="badge" id="modeBadge" style="display:none;"></span>
         </div>
         <div class="panelBody">
           <div class="statusGrid">
@@ -515,7 +569,7 @@
         </div>
       </aside>
 
-      <!-- RIGHT: main dashboard -->
+      <!-- RIGHT -->
       <section class="panel">
         <div class="dashHeaderRow">
           <div class="dashHeaderTitle">
@@ -627,13 +681,6 @@
   </main>
 
   <script>
-    /* ==========================================================
-       PTC Comms Telemetry (Single-file, GitHub Pages)
-       - Outlook Inbox unread via Graph
-       - Slack/HubSpot/Monday via Outlook folders (unreadItemCount)
-       - Counts only (Mail.ReadBasic), no bodies
-       ========================================================== */
-
     const CONFIG = {
       tenantId: "bcfdd46a-c2dd-4e71-a9f8-5cd31816ff9e",
       clientId: "cf321f12-ce1d-4067-b44e-05fafad8258d",
@@ -645,20 +692,8 @@
       },
 
       scale: {
-        max: {
-          outlook: 300,
-          slack: 100,
-          hubspot: 100,
-          monday: 100,
-          total: 500
-        },
-        redline: {
-          outlook: 200,
-          slack: 30,
-          hubspot: 30,
-          monday: 30,
-          total: 280
-        }
+        max: { outlook: 300, slack: 100, hubspot: 100, monday: 100, total: 500 },
+        redline: { outlook: 200, slack: 30, hubspot: 30, monday: 30, total: 280 }
       },
 
       links: {
@@ -832,7 +867,6 @@
         }
       }
 
-      // flash only when value changes
       if (lastVals[key] !== null && lastVals[key] !== v) flashCard(card);
       lastVals[key] = v;
     }
@@ -978,7 +1012,6 @@
     window.addEventListener("load", async () => {
       setAppLinks();
 
-      // Wait until MSAL global exists (defer load)
       const waitMsal = async () => {
         for (let i=0;i<60;i++){
           if (window.msal && window.msal.PublicClientApplication) return true;
@@ -1002,7 +1035,6 @@
         cache: { cacheLocation: "sessionStorage" }
       });
 
-      // handle redirect sign-in if it happened
       await msalApp.handleRedirectPromise().catch(()=>null);
 
       $("btnIgnition").onclick = () => signIn().catch(console.error);
