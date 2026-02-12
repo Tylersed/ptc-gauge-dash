@@ -5,11 +5,443 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>PTC • Comms Telemetry</title>
 
-  <link rel="stylesheet" href="styles.css" />
-
-  <!-- MSAL for Entra sign-in (browser SPA) -->
+  <!-- MSAL (Entra sign-in) -->
   <script defer src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
-  <script defer src="app.js"></script>
+
+  <style>
+    :root{
+      --bg0:#070910;
+      --bg1:#0b1020;
+      --panel: rgba(255,255,255,0.035);
+      --panel2: rgba(255,255,255,0.05);
+      --stroke: rgba(255,255,255,0.10);
+      --stroke2: rgba(255,255,255,0.16);
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.68);
+      --soft: rgba(255,255,255,0.55);
+      --radius: 18px;
+
+      --ptc: #60a5ff;
+      --ok:   #60a5ff;
+      --warn: #ffcc66;
+      --bad:  #ff4d6d;
+      --teal: #5eead4;
+      --vio:  #a78bfa;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 700px at 18% 8%, rgba(96,165,255,0.14), transparent 60%),
+        radial-gradient(900px 600px at 88% 20%, rgba(255,77,109,0.08), transparent 62%),
+        radial-gradient(900px 500px at 55% 110%, rgba(94,234,212,0.06), transparent 60%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      overflow-x:hidden;
+    }
+
+    /* subtle “enterprise grid” */
+    body::before{
+      content:"";
+      position:fixed; inset:0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 52px 52px;
+      opacity: 0.08;
+      pointer-events:none;
+      filter: blur(0.2px);
+    }
+
+    .topbar{
+      position: sticky; top:0; z-index:50;
+      display:flex; justify-content:space-between; align-items:center;
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: rgba(8,10,16,0.78);
+      backdrop-filter: blur(10px);
+    }
+    .brand{ display:flex; align-items:center; gap:12px; }
+    .logo{
+      width:46px; height:46px; display:grid; place-items:center;
+      border-radius: 14px;
+      font-weight:1000; letter-spacing:1px;
+      background:
+        radial-gradient(120% 120% at 30% 30%, rgba(255,255,255,0.18), transparent 55%),
+        rgba(96,165,255,0.14);
+      border: 1px solid rgba(96,165,255,0.30);
+      box-shadow: 0 14px 40px rgba(0,0,0,0.55);
+      user-select:none;
+    }
+    .titles .title{
+      font-weight:1000;
+      letter-spacing:0.8px;
+      font-size: 14px;
+      text-transform: uppercase;
+    }
+    .titles .subtitle{
+      font-size:12px;
+      color: var(--muted);
+      margin-top:2px;
+    }
+
+    .controls{ display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+    .btn{
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-weight: 950;
+      letter-spacing:0.7px;
+      cursor:pointer;
+      transition: transform .12s ease, background .12s ease, border-color .12s ease, opacity .12s ease;
+    }
+    .btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.06); }
+    .btn:disabled{ opacity:0.45; cursor:not-allowed; transform:none; }
+    .btn.primary{
+      background: rgba(96,165,255,0.16);
+      border-color: rgba(96,165,255,0.34);
+      box-shadow: 0 0 0 1px rgba(96,165,255,0.10) inset, 0 18px 44px rgba(0,0,0,0.55);
+    }
+
+    .wrap{ max-width: 1280px; margin: 18px auto 70px; padding: 0 14px; }
+
+    /* Portal layout (PTC link-hub vibe) */
+    .layout{
+      display:grid;
+      grid-template-columns: 300px 1fr;
+      gap: 14px;
+      align-items:start;
+    }
+    @media (max-width: 980px){
+      .layout{ grid-template-columns: 1fr; }
+    }
+
+    .panel{
+      border-radius: var(--radius);
+      border: 1px solid var(--stroke);
+      background:
+        linear-gradient(180deg, var(--panel2), var(--panel)),
+        radial-gradient(900px 260px at 18% 10%, rgba(255,255,255,0.06), transparent 55%),
+        rgba(12, 14, 22, 0.74);
+      box-shadow: 0 26px 86px rgba(0,0,0,0.55);
+      overflow:hidden;
+    }
+    .panelHeader{
+      padding: 14px 14px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap: 10px;
+    }
+    .panelTitle{
+      font-size: 12px;
+      letter-spacing: 1.7px;
+      text-transform: uppercase;
+      font-weight: 1000;
+      color: rgba(255,255,255,0.86);
+      display:flex; align-items:center; gap:10px;
+    }
+    .panelTitle::before{
+      content:"";
+      width:10px; height:10px; border-radius: 999px;
+      background: rgba(96,165,255,0.85);
+      box-shadow: 0 0 18px rgba(96,165,255,0.22);
+    }
+    .panelBody{ padding: 14px; }
+
+    /* Left “PTC link hub” sidebar */
+    .statusGrid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .stat{
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+      padding: 10px 12px;
+    }
+    .statLabel{
+      font-size:11px;
+      color: var(--muted);
+      letter-spacing:1px;
+      font-weight:950;
+      text-transform:uppercase;
+    }
+    .statValue{
+      margin-top: 4px;
+      font-weight: 1000;
+      font-size: 13px;
+      color: rgba(255,255,255,0.92);
+      word-break: break-word;
+    }
+    .statSub{
+      margin-top: 6px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.58);
+      letter-spacing: 0.6px;
+    }
+
+    .quickLinks{
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .linkBtn{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.11);
+      background: rgba(255,255,255,0.03);
+      text-decoration:none;
+      color: var(--text);
+      font-weight: 950;
+      letter-spacing: 0.6px;
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
+    }
+    .linkBtn:hover{
+      background: rgba(255,255,255,0.06);
+      transform: translateY(-1px);
+      border-color: rgba(255,255,255,0.18);
+    }
+    .linkMeta{
+      font-size: 11px;
+      color: rgba(255,255,255,0.62);
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .scopeNote{
+      margin-top: 12px;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.03);
+      color: rgba(255,255,255,0.70);
+      font-size: 12.5px;
+      line-height: 1.35;
+    }
+    .scopeNote b{ color: rgba(255,255,255,0.90); }
+
+    /* Main dashboard */
+    .dashHeaderRow{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap: 12px;
+      padding: 14px 14px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .dashHeaderTitle{
+      display:flex; flex-direction:column; gap:4px;
+    }
+    .dashHeaderTitle .h1{
+      font-size: 14px;
+      font-weight: 1000;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+    }
+    .dashHeaderTitle .h2{
+      font-size: 12px;
+      color: rgba(255,255,255,0.66);
+    }
+
+    .badges{ display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+    .badge{
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.11);
+      background: rgba(255,255,255,0.03);
+      font-weight: 1000;
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.78);
+      white-space:nowrap;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(12, minmax(0,1fr));
+      gap: 14px;
+      padding: 14px;
+    }
+    .card{
+      grid-column: span 6;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.02);
+      overflow:hidden;
+    }
+    .card.total{ grid-column: span 12; }
+    @media (min-width: 1120px){
+      .card.total{ grid-column: span 8; }
+      .card.outlook{ grid-column: span 4; }
+      .card.slack, .card.hubspot, .card.monday{ grid-column: span 4; }
+    }
+    @media (max-width: 1120px){
+      .card{ grid-column: span 12; }
+    }
+
+    .cardHead{
+      padding: 14px 14px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap: 12px;
+    }
+    .nameStack{ display:flex; flex-direction:column; gap:4px; }
+    .cardName{
+      font-size: 14px;
+      font-weight: 1000;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .dot{
+      width:10px; height:10px;
+      border-radius:999px;
+      background: rgba(255,255,255,0.22);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.10) inset;
+    }
+    .cardHint{
+      font-size: 12px;
+      color: rgba(255,255,255,0.62);
+    }
+
+    .pill{
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-weight: 1000;
+      letter-spacing: 1px;
+      font-size: 11px;
+      text-transform: uppercase;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04);
+      color: rgba(255,255,255,0.86);
+      white-space: nowrap;
+    }
+
+    .cardBody{ padding: 14px; }
+
+    .big{
+      font-size: 56px;
+      line-height: 1.05;
+      font-weight: 1000;
+      letter-spacing: 0.6px;
+    }
+    .total .big{ font-size: 68px; }
+    .meta{
+      margin-top: 6px;
+      font-size: 12px;
+      font-weight: 900;
+      color: rgba(255,255,255,0.70);
+    }
+
+    .bar{
+      margin-top: 12px;
+      height: 11px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      overflow:hidden;
+    }
+    .barFill{
+      height: 100%;
+      width: calc(var(--p, 0) * 100%);
+      border-radius: 999px;
+      background: rgba(96,165,255,0.78);
+      transition: width .25s ease, background .18s ease;
+    }
+
+    /* Total breakdown chips (looks like an enterprise widget) */
+    .breakdown{
+      margin-top: 12px;
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: 10px;
+    }
+    @media (max-width: 1120px){
+      .breakdown{ grid-template-columns: 1fr 1fr; }
+    }
+    .chip{
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 10px 10px;
+      background: rgba(255,255,255,0.02);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      color: rgba(255,255,255,0.78);
+      font-size: 12px;
+    }
+    .chip b{
+      font-size: 14px;
+      color: rgba(255,255,255,0.92);
+      letter-spacing: 0.4px;
+    }
+
+    /* Status coloring (professional, not “arcade”) */
+    .card[data-status="idle"] .pill{ opacity:0.85; }
+    .card[data-status="ok"] .pill{
+      border-color: rgba(96,165,255,0.40);
+      background: rgba(96,165,255,0.12);
+    }
+    .card[data-status="warn"] .pill{
+      border-color: rgba(255,204,102,0.45);
+      background: rgba(255,204,102,0.12);
+    }
+    .card[data-status="bad"] .pill{
+      border-color: rgba(255,77,109,0.50);
+      background: rgba(255,77,109,0.12);
+    }
+
+    .card[data-status="idle"] .barFill{ background: rgba(255,255,255,0.24); }
+    .card[data-status="ok"] .barFill{ background: rgba(96,165,255,0.78); }
+    .card[data-status="warn"] .barFill{ background: rgba(255,204,102,0.80); }
+    .card[data-status="bad"] .barFill{ background: rgba(255,77,109,0.82); }
+
+    .card[data-key="outlook"] .dot{ background: rgba(96,165,255,0.85); box-shadow: 0 0 18px rgba(96,165,255,0.18); }
+    .card[data-key="slack"] .dot{ background: rgba(167,139,250,0.85); box-shadow: 0 0 18px rgba(167,139,250,0.14); }
+    .card[data-key="hubspot"] .dot{ background: rgba(255,204,102,0.88); box-shadow: 0 0 18px rgba(255,204,102,0.14); }
+    .card[data-key="monday"] .dot{ background: rgba(94,234,212,0.85); box-shadow: 0 0 18px rgba(94,234,212,0.12); }
+    .card[data-key="total"] .dot{ background: rgba(255,255,255,0.78); box-shadow: 0 0 18px rgba(255,255,255,0.10); }
+
+    /* subtle “updated” flash (only when value changes) */
+    .card.flash{
+      border-color: rgba(255,255,255,0.22);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.06) inset, 0 26px 86px rgba(0,0,0,0.55);
+      transition: border-color .35s ease;
+    }
+
+    /* Footer note */
+    .footerNote{
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.03);
+      color: rgba(255,255,255,0.70);
+      font-size: 12.5px;
+      line-height: 1.35;
+    }
+    .footerNote b{ color: rgba(255,255,255,0.92); }
+  </style>
 </head>
 
 <body>
@@ -32,137 +464,560 @@
   </header>
 
   <main class="wrap">
-    <section class="statusBar">
-      <div class="statusItem">
-        <div class="label">Driver</div>
-        <div class="value" id="driver">—</div>
-      </div>
-      <div class="statusItem">
-        <div class="label">Last Update</div>
-        <div class="value" id="lastUpdate">—</div>
-      </div>
-      <div class="statusItem">
-        <div class="label">Baseline</div>
-        <div class="value" id="baselineTime">—</div>
-      </div>
-      <div class="statusItem">
-        <div class="label">Mode</div>
-        <div class="value" id="mode">IDLE</div>
-        <div class="sub" id="pollMeta">POLL: IDLE • API: —</div>
-      </div>
+    <section class="layout">
+
+      <!-- LEFT: PTC link hub style sidebar -->
+      <aside class="panel">
+        <div class="panelHeader">
+          <div class="panelTitle">Status</div>
+          <span class="badge" id="modeBadge" style="display:none;"></span>
+        </div>
+        <div class="panelBody">
+          <div class="statusGrid">
+            <div class="stat">
+              <div class="statLabel">Driver</div>
+              <div class="statValue" id="driver">—</div>
+            </div>
+            <div class="stat">
+              <div class="statLabel">Last Update</div>
+              <div class="statValue" id="lastUpdate">—</div>
+            </div>
+            <div class="stat">
+              <div class="statLabel">Baseline</div>
+              <div class="statValue" id="baselineTime">—</div>
+            </div>
+            <div class="stat">
+              <div class="statLabel">Mode</div>
+              <div class="statValue" id="mode">IDLE</div>
+              <div class="statSub" id="pollMeta">POLL: IDLE • API: —</div>
+            </div>
+          </div>
+
+          <div class="quickLinks">
+            <a class="linkBtn" id="link_outlook" target="_blank" rel="noreferrer">
+              <span>Outlook</span><span class="linkMeta">OPEN</span>
+            </a>
+            <a class="linkBtn" id="link_slack" target="_blank" rel="noreferrer">
+              <span>Slack</span><span class="linkMeta">OPEN</span>
+            </a>
+            <a class="linkBtn" id="link_hubspot" target="_blank" rel="noreferrer">
+              <span>HubSpot</span><span class="linkMeta">OPEN</span>
+            </a>
+            <a class="linkBtn" id="link_monday" target="_blank" rel="noreferrer">
+              <span>Monday</span><span class="linkMeta">OPEN</span>
+            </a>
+          </div>
+
+          <div class="scopeNote">
+            <b>Privacy:</b> reads <b>unread counts only</b> from Outlook folders. No subject lines, no bodies.
+            Slack/HubSpot/Monday are represented via mapped Outlook alert folders.
+          </div>
+        </div>
+      </aside>
+
+      <!-- RIGHT: main dashboard -->
+      <section class="panel">
+        <div class="dashHeaderRow">
+          <div class="dashHeaderTitle">
+            <div class="h1">Dashboard</div>
+            <div class="h2">Fast, readable monitoring for the whole firm</div>
+          </div>
+          <div class="badges">
+            <div class="badge">Counts only</div>
+            <div class="badge">Session storage</div>
+            <div class="badge">Mail.ReadBasic</div>
+          </div>
+        </div>
+
+        <div class="grid">
+          <!-- TOTAL -->
+          <article class="card total" id="card_total" data-key="total" data-status="idle" style="--p:0;">
+            <div class="cardHead">
+              <div class="nameStack">
+                <div class="cardName"><span class="dot"></span> TOTAL</div>
+                <div class="cardHint">All sources combined</div>
+              </div>
+              <div class="pill" id="status_total">IDLE</div>
+            </div>
+            <div class="cardBody">
+              <div class="big" id="val_total">—</div>
+              <div class="meta" id="meta_total">New since baseline: —</div>
+              <div class="bar"><div class="barFill"></div></div>
+
+              <div class="breakdown">
+                <div class="chip"><span>Outlook</span><b id="mini_outlook">—</b></div>
+                <div class="chip"><span>Slack</span><b id="mini_slack">—</b></div>
+                <div class="chip"><span>HubSpot</span><b id="mini_hubspot">—</b></div>
+                <div class="chip"><span>Monday</span><b id="mini_monday">—</b></div>
+              </div>
+            </div>
+          </article>
+
+          <!-- OUTLOOK -->
+          <article class="card outlook" id="card_outlook" data-key="outlook" data-status="idle" style="--p:0;">
+            <div class="cardHead">
+              <div class="nameStack">
+                <div class="cardName"><span class="dot"></span> OUTLOOK</div>
+                <div class="cardHint">Inbox unread</div>
+              </div>
+              <div class="pill" id="status_outlook">IDLE</div>
+            </div>
+            <div class="cardBody">
+              <div class="big" id="val_outlook">—</div>
+              <div class="meta" id="meta_outlook">Since baseline: —</div>
+              <div class="bar"><div class="barFill"></div></div>
+            </div>
+          </article>
+
+          <!-- SLACK -->
+          <article class="card slack" id="card_slack" data-key="slack" data-status="idle" style="--p:0;">
+            <div class="cardHead">
+              <div class="nameStack">
+                <div class="cardName"><span class="dot"></span> SLACK</div>
+                <div class="cardHint">Mapped folder unread</div>
+              </div>
+              <div class="pill" id="status_slack">IDLE</div>
+            </div>
+            <div class="cardBody">
+              <div class="big" id="val_slack">—</div>
+              <div class="meta" id="meta_slack">Since baseline: —</div>
+              <div class="bar"><div class="barFill"></div></div>
+            </div>
+          </article>
+
+          <!-- HUBSPOT -->
+          <article class="card hubspot" id="card_hubspot" data-key="hubspot" data-status="idle" style="--p:0;">
+            <div class="cardHead">
+              <div class="nameStack">
+                <div class="cardName"><span class="dot"></span> HUBSPOT</div>
+                <div class="cardHint">Mapped folder unread</div>
+              </div>
+              <div class="pill" id="status_hubspot">IDLE</div>
+            </div>
+            <div class="cardBody">
+              <div class="big" id="val_hubspot">—</div>
+              <div class="meta" id="meta_hubspot">Since baseline: —</div>
+              <div class="bar"><div class="barFill"></div></div>
+            </div>
+          </article>
+
+          <!-- MONDAY -->
+          <article class="card monday" id="card_monday" data-key="monday" data-status="idle" style="--p:0;">
+            <div class="cardHead">
+              <div class="nameStack">
+                <div class="cardName"><span class="dot"></span> MONDAY</div>
+                <div class="cardHint">Mapped folder unread</div>
+              </div>
+              <div class="pill" id="status_monday">IDLE</div>
+            </div>
+            <div class="cardBody">
+              <div class="big" id="val_monday">—</div>
+              <div class="meta" id="meta_monday">Since baseline: —</div>
+              <div class="bar"><div class="barFill"></div></div>
+            </div>
+          </article>
+        </div>
+      </section>
     </section>
 
-    <section class="dashboard">
-      <!-- TOTAL -->
-      <article class="card card--total" id="card_total" data-key="total" data-status="idle" style="--p:0;">
-        <div class="cardHead">
-          <div class="cardTitle">
-            <span class="titleText">TOTAL</span>
-            <span class="titleHint">All sources combined</span>
-          </div>
-          <div class="pill" id="status_total">IDLE</div>
-        </div>
-
-        <div class="cardBody">
-          <div class="bigNumber" id="val_total">—</div>
-          <div class="meta" id="meta_total">New since baseline: —</div>
-
-          <div class="bar">
-            <div class="barFill"></div>
-          </div>
-
-          <div class="micro">
-            <div class="microItem"><span>Outlook</span><b id="mini_outlook">—</b></div>
-            <div class="microItem"><span>Slack</span><b id="mini_slack">—</b></div>
-            <div class="microItem"><span>HubSpot</span><b id="mini_hubspot">—</b></div>
-            <div class="microItem"><span>Monday</span><b id="mini_monday">—</b></div>
-          </div>
-        </div>
-      </article>
-
-      <!-- OUTLOOK -->
-      <article class="card" id="card_outlook" data-key="outlook" data-status="idle" style="--p:0;">
-        <div class="cardHead">
-          <div class="cardTitle">
-            <span class="titleText">OUTLOOK</span>
-            <span class="titleHint">Inbox unread</span>
-          </div>
-          <div class="pill" id="status_outlook">IDLE</div>
-        </div>
-
-        <div class="cardBody">
-          <div class="bigNumber" id="val_outlook">—</div>
-          <div class="meta" id="meta_outlook">Since baseline: —</div>
-          <div class="bar"><div class="barFill"></div></div>
-        </div>
-      </article>
-
-      <!-- SLACK -->
-      <article class="card" id="card_slack" data-key="slack" data-status="idle" style="--p:0;">
-        <div class="cardHead">
-          <div class="cardTitle">
-            <span class="titleText">SLACK</span>
-            <span class="titleHint">Mapped folder unread</span>
-          </div>
-          <div class="pill" id="status_slack">IDLE</div>
-        </div>
-
-        <div class="cardBody">
-          <div class="bigNumber" id="val_slack">—</div>
-          <div class="meta" id="meta_slack">Since baseline: —</div>
-          <div class="bar"><div class="barFill"></div></div>
-        </div>
-      </article>
-
-      <!-- HUBSPOT -->
-      <article class="card" id="card_hubspot" data-key="hubspot" data-status="idle" style="--p:0;">
-        <div class="cardHead">
-          <div class="cardTitle">
-            <span class="titleText">HUBSPOT</span>
-            <span class="titleHint">Mapped folder unread</span>
-          </div>
-          <div class="pill" id="status_hubspot">IDLE</div>
-        </div>
-
-        <div class="cardBody">
-          <div class="bigNumber" id="val_hubspot">—</div>
-          <div class="meta" id="meta_hubspot">Since baseline: —</div>
-          <div class="bar"><div class="barFill"></div></div>
-        </div>
-      </article>
-
-      <!-- MONDAY -->
-      <article class="card" id="card_monday" data-key="monday" data-status="idle" style="--p:0;">
-        <div class="cardHead">
-          <div class="cardTitle">
-            <span class="titleText">MONDAY</span>
-            <span class="titleHint">Mapped folder unread</span>
-          </div>
-          <div class="pill" id="status_monday">IDLE</div>
-        </div>
-
-        <div class="cardBody">
-          <div class="bigNumber" id="val_monday">—</div>
-          <div class="meta" id="meta_monday">Since baseline: —</div>
-          <div class="bar"><div class="barFill"></div></div>
-        </div>
-      </article>
-    </section>
-
-    <section class="actions">
-      <a class="actionBtn" id="link_outlook" target="_blank" rel="noreferrer">Open Outlook</a>
-      <a class="actionBtn" id="link_slack" target="_blank" rel="noreferrer">Open Slack</a>
-      <a class="actionBtn" id="link_hubspot" target="_blank" rel="noreferrer">Open HubSpot</a>
-      <a class="actionBtn" id="link_monday" target="_blank" rel="noreferrer">Open Monday</a>
-    </section>
-
-    <section class="note">
-      <div class="noteTitle">Privacy & scope</div>
-      <div class="noteBody">
-        This dashboard reads <b>unread counts only</b> from Outlook folders and does <b>not</b> read message bodies.
-        Slack/HubSpot/Monday are represented via Outlook folders that receive notification emails.
-      </div>
-    </section>
+    <div class="footerNote">
+      <b>How it works:</b> Outlook counts are read via Microsoft Graph folder unread counts. Slack/HubSpot/Monday are represented by Outlook alert folders.
+      <b>No message content is read.</b>
+    </div>
   </main>
+
+  <script>
+    /* ==========================================================
+       PTC Comms Telemetry (Single-file, GitHub Pages)
+       - Outlook Inbox unread via Graph
+       - Slack/HubSpot/Monday via Outlook folders (unreadItemCount)
+       - Counts only (Mail.ReadBasic), no bodies
+       ========================================================== */
+
+    const CONFIG = {
+      tenantId: "bcfdd46a-c2dd-4e71-a9f8-5cd31816ff9e",
+      clientId: "cf321f12-ce1d-4067-b44e-05fafad8258d",
+
+      folders: {
+        slack:   { name: "PTC - Slack Alerts" },
+        hubspot: { name: "PTC - HubSpot Alerts" },
+        monday:  { name: "PTC - Monday Alerts" }
+      },
+
+      scale: {
+        max: {
+          outlook: 300,
+          slack: 100,
+          hubspot: 100,
+          monday: 100,
+          total: 500
+        },
+        redline: {
+          outlook: 200,
+          slack: 30,
+          hubspot: 30,
+          monday: 30,
+          total: 280
+        }
+      },
+
+      links: {
+        outlook: "https://outlook.office.com/mail/",
+        slack:   "https://app.slack.com/client/",
+        hubspot: "https://app.hubspot.com/",
+        monday:  "https://monday.com/"
+      },
+
+      autoRefreshSeconds: 60
+    };
+
+    const GRAPH = "https://graph.microsoft.com/v1.0";
+    const SCOPES = ["Mail.ReadBasic", "User.Read"];
+
+    let msalApp;
+    let activeAccount = null;
+    let autoTimer = null;
+
+    const $ = (id) => document.getElementById(id);
+    const nowStr = () => new Date().toLocaleString();
+    const clamp = (n,a,b) => Math.max(a, Math.min(b,n));
+    const pct = (value, max) => clamp((value || 0) / Math.max(1, max), 0, 1);
+
+    function setButtons(signedIn){
+      $("btnRefresh").disabled = !signedIn;
+      $("btnBaseline").disabled = !signedIn;
+      $("btnAuto").disabled = !signedIn;
+      $("btnSignOut").disabled = !signedIn;
+    }
+    function setMode(t){ $("mode").textContent = t; }
+    function setDriver(t){ $("driver").textContent = t || "—"; }
+    function setUpdateTime(t){ $("lastUpdate").textContent = t || "—"; }
+    function setPollMeta(t){ $("pollMeta").textContent = t; }
+
+    function baselineKey(){
+      const id = activeAccount?.homeAccountId || "anon";
+      return `ptc_comms_baseline_${id}`;
+    }
+    function getBaseline(){
+      try{
+        const raw = localStorage.getItem(baselineKey());
+        return raw ? JSON.parse(raw) : null;
+      }catch{ return null; }
+    }
+    function setBaseline(obj){
+      localStorage.setItem(baselineKey(), JSON.stringify(obj));
+    }
+    function setBaselineUI(){
+      const b = getBaseline();
+      $("baselineTime").textContent = b?.time ? new Date(b.time).toLocaleString() : "—";
+    }
+    function setBaselineFromCurrent(){
+      const current = {};
+      for (const k of ["outlook","slack","hubspot","monday"]){
+        const v = parseInt($(`val_${k}`).textContent, 10);
+        current[k] = Number.isFinite(v) ? v : 0;
+      }
+      setBaseline({ time: Date.now(), counts: current });
+      setBaselineUI();
+      refreshAll().catch(()=>{});
+    }
+
+    function setAppLinks(){
+      $("link_outlook").href = CONFIG.links.outlook;
+      $("link_slack").href   = CONFIG.links.slack;
+      $("link_hubspot").href = CONFIG.links.hubspot;
+      $("link_monday").href  = CONFIG.links.monday;
+    }
+
+    async function graphGet(path, token){
+      const res = await fetch(`${GRAPH}${path}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      return res.json();
+    }
+    async function getToken(){
+      const req = { scopes: SCOPES, account: activeAccount };
+      try{
+        const r = await msalApp.acquireTokenSilent(req);
+        return r.accessToken;
+      }catch{
+        const r = await msalApp.acquireTokenPopup(req);
+        return r.accessToken;
+      }
+    }
+    async function getInboxUnread(token){
+      const data = await graphGet(`/me/mailFolders('inbox')?$select=unreadItemCount`, token);
+      return data.unreadItemCount ?? 0;
+    }
+    async function getFolderCandidates(token){
+      const [top, inboxKids] = await Promise.all([
+        graphGet(`/me/mailFolders?$select=displayName,id,unreadItemCount&$top=200`, token).catch(() => ({ value: [] })),
+        graphGet(`/me/mailFolders('inbox')/childFolders?$select=displayName,id,unreadItemCount&$top=200`, token).catch(() => ({ value: [] }))
+      ]);
+
+      const list = [...(top.value || []), ...(inboxKids.value || [])];
+      const seen = new Set();
+      const out = [];
+      for (const f of list){
+        if (!f?.id || seen.has(f.id)) continue;
+        seen.add(f.id);
+        out.push(f);
+      }
+      return out;
+    }
+    function findFolderCount(folders, name){
+      const target = (name || "").trim().toLowerCase();
+      const match = folders.find(f => (f.displayName || "").trim().toLowerCase() === target);
+      return match?.unreadItemCount ?? 0;
+    }
+
+    function computeTotals(c){
+      return (c.outlook||0)+(c.slack||0)+(c.hubspot||0)+(c.monday||0);
+    }
+    function computeDeltas(counts){
+      const b = getBaseline();
+      if (!b?.counts) return { deltas: null };
+
+      const deltas = {};
+      for (const k of ["outlook","slack","hubspot","monday"]){
+        const base = Number.isFinite(b.counts[k]) ? b.counts[k] : 0;
+        const cur  = Number.isFinite(counts[k]) ? counts[k] : 0;
+        deltas[k] = cur - base;
+      }
+      deltas.total = deltas.outlook + deltas.slack + deltas.hubspot + deltas.monday;
+      return { deltas };
+    }
+
+    function statusFor(value, redline){
+      const v = Number.isFinite(value) ? value : 0;
+      const warnAt = Math.ceil(redline * 0.60);
+
+      if (v >= redline) return { level: "bad",  label: "CRITICAL" };
+      if (v >= warnAt)  return { level: "warn", label: "ELEVATED" };
+      if (v > 0)        return { level: "ok",   label: "OK" };
+      return { level: "idle", label: "IDLE" };
+    }
+
+    function flashCard(card){
+      if (!card) return;
+      card.classList.remove("flash");
+      void card.offsetWidth;
+      card.classList.add("flash");
+      setTimeout(()=> card.classList.remove("flash"), 420);
+    }
+
+    const lastVals = { total:null, outlook:null, slack:null, hubspot:null, monday:null };
+
+    function setCard(key, value, delta, max, redline, isTotal=false){
+      const card = $(`card_${key}`);
+      const pill = $(`status_${key}`);
+      const valEl = $(`val_${key}`);
+      const metaEl = $(`meta_${key}`);
+
+      const v = Number.isFinite(value) ? value : 0;
+      const s = statusFor(v, redline);
+
+      if (card){
+        card.dataset.status = s.level;
+        card.style.setProperty("--p", pct(v, max));
+      }
+      if (pill) pill.textContent = s.label;
+      if (valEl) valEl.textContent = String(v);
+
+      if (metaEl){
+        if (delta == null){
+          metaEl.textContent = isTotal ? "New since baseline: —" : "Since baseline: —";
+        }else{
+          const sign = delta > 0 ? "+" : "";
+          metaEl.textContent = isTotal ? `New since baseline: ${sign}${delta}` : `Since baseline: ${sign}${delta}`;
+        }
+      }
+
+      // flash only when value changes
+      if (lastVals[key] !== null && lastVals[key] !== v) flashCard(card);
+      lastVals[key] = v;
+    }
+
+    function updateMode(total){
+      const red = CONFIG.scale.redline.total;
+      if (total >= red) setMode("REDLINE");
+      else if (total >= Math.ceil(red * 0.55)) setMode("BUSY");
+      else if (total > 0) setMode("ACTIVE");
+      else setMode("IDLE");
+    }
+
+    async function refreshAll(){
+      setPollMeta("POLL: PULLING • API: —");
+      const t0 = performance.now();
+
+      try{
+        const token = await getToken();
+
+        const inboxCount = await getInboxUnread(token);
+        const folders = await getFolderCandidates(token);
+
+        const counts = {
+          outlook: inboxCount,
+          slack:   findFolderCount(folders, CONFIG.folders.slack.name),
+          hubspot: findFolderCount(folders, CONFIG.folders.hubspot.name),
+          monday:  findFolderCount(folders, CONFIG.folders.monday.name)
+        };
+        counts.total = computeTotals(counts);
+
+        const { deltas } = computeDeltas(counts);
+
+        $("mini_outlook").textContent = String(counts.outlook);
+        $("mini_slack").textContent = String(counts.slack);
+        $("mini_hubspot").textContent = String(counts.hubspot);
+        $("mini_monday").textContent = String(counts.monday);
+
+        setCard("total", counts.total, deltas?.total ?? null, CONFIG.scale.max.total, CONFIG.scale.redline.total, true);
+        setCard("outlook", counts.outlook, deltas?.outlook ?? null, CONFIG.scale.max.outlook, CONFIG.scale.redline.outlook);
+        setCard("slack", counts.slack, deltas?.slack ?? null, CONFIG.scale.max.slack, CONFIG.scale.redline.slack);
+        setCard("hubspot", counts.hubspot, deltas?.hubspot ?? null, CONFIG.scale.max.hubspot, CONFIG.scale.redline.hubspot);
+        setCard("monday", counts.monday, deltas?.monday ?? null, CONFIG.scale.max.monday, CONFIG.scale.redline.monday);
+
+        updateMode(counts.total);
+        setUpdateTime(nowStr());
+
+        const ms = Math.round(performance.now() - t0);
+        setPollMeta(`POLL: LIVE • API: ${ms}ms`);
+      }catch(e){
+        console.error(e);
+        setMode("CHECK");
+        setUpdateTime(nowStr());
+        setPollMeta("POLL: ERROR • API: —");
+      }
+    }
+
+    function normalizeRedirectUri(){
+      let p = window.location.pathname || "/";
+      if (p.endsWith("index.html")) p = p.replace("index.html", "");
+      if (!p.endsWith("/")) p = p + "/";
+      return window.location.origin + p;
+    }
+
+    async function signIn(){
+      const loginReq = { scopes: SCOPES };
+
+      await msalApp.handleRedirectPromise().catch(() => null);
+
+      const existing = msalApp.getAllAccounts();
+      if (existing?.length){
+        activeAccount = existing[0];
+        msalApp.setActiveAccount(activeAccount);
+        setButtons(true);
+        setDriver(activeAccount.username);
+        setBaselineUI();
+        await refreshAll();
+        return;
+      }
+
+      try{
+        const result = await msalApp.loginPopup(loginReq);
+        activeAccount = result.account;
+      }catch{
+        await msalApp.loginRedirect(loginReq);
+        return;
+      }
+
+      msalApp.setActiveAccount(activeAccount);
+      setButtons(true);
+      setDriver(activeAccount.username);
+      setBaselineUI();
+      await refreshAll();
+    }
+
+    async function signOut(){
+      const acc = activeAccount;
+      activeAccount = null;
+
+      if (autoTimer){
+        clearInterval(autoTimer);
+        autoTimer = null;
+        $("btnAuto").textContent = "AUTO: OFF";
+      }
+
+      setButtons(false);
+      setDriver("—");
+      setUpdateTime("—");
+      setBaselineUI();
+      setMode("IDLE");
+      setPollMeta("POLL: IDLE • API: —");
+
+      for (const k of ["total","outlook","slack","hubspot","monday"]){
+        const card = $(`card_${k}`);
+        const pill = $(`status_${k}`);
+        const val = $(`val_${k}`);
+        const meta = $(`meta_${k}`);
+        if (card){ card.dataset.status = "idle"; card.style.setProperty("--p", 0); }
+        if (pill) pill.textContent = "IDLE";
+        if (val) val.textContent = "—";
+        if (meta) meta.textContent = (k === "total") ? "New since baseline: —" : "Since baseline: —";
+        lastVals[k] = null;
+      }
+      for (const k of ["mini_outlook","mini_slack","mini_hubspot","mini_monday"]){
+        $(k).textContent = "—";
+      }
+
+      if (acc){
+        await msalApp.logoutPopup({ account: acc }).catch(() => {});
+      }
+    }
+
+    function toggleAuto(){
+      if (autoTimer){
+        clearInterval(autoTimer);
+        autoTimer = null;
+        $("btnAuto").textContent = "AUTO: OFF";
+        return;
+      }
+      autoTimer = setInterval(() => refreshAll().catch(()=>{}), CONFIG.autoRefreshSeconds * 1000);
+      $("btnAuto").textContent = `AUTO: ${CONFIG.autoRefreshSeconds}s`;
+    }
+
+    window.addEventListener("load", async () => {
+      setAppLinks();
+
+      // Wait until MSAL global exists (defer load)
+      const waitMsal = async () => {
+        for (let i=0;i<60;i++){
+          if (window.msal && window.msal.PublicClientApplication) return true;
+          await new Promise(r => setTimeout(r, 50));
+        }
+        return false;
+      };
+      const ok = await waitMsal();
+      if (!ok) {
+        setMode("CHECK");
+        setPollMeta("POLL: MSAL LOAD FAIL • API: —");
+        return;
+      }
+
+      msalApp = new msal.PublicClientApplication({
+        auth: {
+          clientId: CONFIG.clientId,
+          authority: `https://login.microsoftonline.com/${CONFIG.tenantId}`,
+          redirectUri: normalizeRedirectUri()
+        },
+        cache: { cacheLocation: "sessionStorage" }
+      });
+
+      // handle redirect sign-in if it happened
+      await msalApp.handleRedirectPromise().catch(()=>null);
+
+      $("btnIgnition").onclick = () => signIn().catch(console.error);
+      $("btnRefresh").onclick  = () => refreshAll().catch(console.error);
+      $("btnBaseline").onclick = () => setBaselineFromCurrent();
+      $("btnAuto").onclick     = () => toggleAuto();
+      $("btnSignOut").onclick  = () => signOut().catch(console.error);
+
+      setButtons(false);
+      setDriver("—");
+      setUpdateTime("—");
+      setBaselineUI();
+      setMode("IDLE");
+      setPollMeta("POLL: IDLE • API: —");
+    });
+  </script>
 </body>
 </html>
