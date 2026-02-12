@@ -1,3 +1,10 @@
+/* ==========================================================
+   PTC Comms Telemetry (Static GitHub Pages)
+   - Outlook Inbox unread count via Graph
+   - Slack/HubSpot/Monday via Outlook folders (unreadItemCount)
+   - Counts only (Mail.ReadBasic), no message bodies
+   ========================================================== */
+
 const CONFIG = {
   tenantId: "bcfdd46a-c2dd-4e71-a9f8-5cd31816ff9e",
   clientId: "cf321f12-ce1d-4067-b44e-05fafad8258d",
@@ -8,9 +15,22 @@ const CONFIG = {
     monday:  { name: "PTC - Monday Alerts" }
   },
 
+  // Tuned for company-wide use (adjust anytime)
   scale: {
-    max:     { total: 240 },
-    redline: { total: 120 }
+    max: {
+      outlook: 300,
+      slack: 100,
+      hubspot: 100,
+      monday: 100,
+      total: 500
+    },
+    redline: {
+      outlook: 200,
+      slack: 30,
+      hubspot: 30,
+      monday: 30,
+      total: 280
+    }
   },
 
   links: {
@@ -33,13 +53,8 @@ let autoTimer = null;
 const $ = (id) => document.getElementById(id);
 function nowStr(){ return new Date().toLocaleString(); }
 function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
-function pct(value, max){ return clamp(value / Math.max(1,max), 0, 1); }
+function pct(value, max){ return clamp((value || 0) / Math.max(1,max), 0, 1); }
 
-function setLight(name, on){
-  const el = document.querySelector(`.light[data-light="${name}"]`);
-  if (!el) return;
-  el.classList.toggle("on", !!on);
-}
 function setButtons(signedIn){
   $("btnRefresh").disabled = !signedIn;
   $("btnBaseline").disabled = !signedIn;
@@ -49,10 +64,11 @@ function setButtons(signedIn){
 function setMode(t){ $("mode").textContent = t; }
 function setDriver(t){ $("driver").textContent = t || "—"; }
 function setUpdateTime(t){ $("lastUpdate").textContent = t || "—"; }
+function setPollMeta(pollText){ $("pollMeta").textContent = pollText; }
 
 function baselineKey(){
   const id = activeAccount?.homeAccountId || "anon";
-  return `ptc_gauge_baseline_${id}`;
+  return `ptc_comms_baseline_${id}`;
 }
 function getBaseline(){
   try{
@@ -77,6 +93,7 @@ function setBaselineFromCurrent(){
   setBaselineUI();
   refreshAll().catch(() => {});
 }
+
 function setAppLinks(){
   $("link_outlook").href = CONFIG.links.outlook;
   $("link_slack").href   = CONFIG.links.slack;
@@ -84,6 +101,9 @@ function setAppLinks(){
   $("link_monday").href  = CONFIG.links.monday;
 }
 
+/* =========================
+   Graph helpers
+   ========================= */
 async function graphGet(path, token){
   const res = await fetch(`${GRAPH}${path}`, { headers: { Authorization: `Bearer ${token}` } });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
@@ -125,222 +145,9 @@ function findFolderCount(folders, name){
   return match?.unreadItemCount ?? 0;
 }
 
-/* TOTAL gauge */
-let _needle = 0;
-function needleAngle(p){
-  _needle = _needle + (p - _needle) * 0.35;
-  const min = -120, max = 120;
-  return `${min + (max-min) * _needle}deg`;
-}
-function zoneColor(value, redline){
-  if (!Number.isFinite(value)) return "rgba(255,255,255,0.6)";
-  if (value >= redline) return "var(--ringRed)";
-  if (value >= Math.ceil(redline * 0.6)) return "var(--ringWarn)";
-  return "var(--ringFill)";
-}
-function renderTotalGauge(total, delta){
-  const gauge = document.querySelector(`.gauge[data-key="total"]`);
-  if (!gauge) return;
-
-  const max = CONFIG.scale.max.total;
-  const red = CONFIG.scale.redline.total;
-  const p = pct(total, max);
-
-  gauge.style.setProperty("--pct", p);
-  gauge.style.setProperty("--angle", needleAngle(p));
-  gauge.style.setProperty("--fill", zoneColor(total, red));
-
-  $("val_total").textContent = String(total ?? "—");
-  if (delta == null) $("meta_total").textContent = "New since baseline: —";
-  else {
-    const sign = delta > 0 ? "+" : "";
-    $("meta_total").textContent = `New since baseline: ${sign}${delta}`;
-  }
-}
-
-/* WAVES */
-class OscilloscopeWave {
-  constructor(key, canvasId, cardId){
-    this.key = key;
-    this.cv = $(canvasId);
-    this.card = $(cardId);
-    this.ctx = this.cv.getContext("2d", { alpha: true });
-
-    this.dpr = Math.max(1, window.devicePixelRatio || 1);
-    this.w = 0; this.h = 0;
-
-    this.N = 320;
-    this.buf = new Float32Array(this.N);
-    this.write = 0;
-
-    this.acc = 0;
-    this.sampleHz = 80;
-    this.sampleDt = 1 / this.sampleHz;
-
-    this.phase = Math.random() * 1000;
-    this.phase2 = Math.random() * 1000;
-
-    this.load = 0;
-    this.impulse = 0;
-
-    this._resize();
-    window.addEventListener("resize", () => {
-      this.dpr = Math.max(1, window.devicePixelRatio || 1);
-      this._resize();
-    });
-
-    for (let i=0;i<this.N;i++) this.buf[i] = 0;
-  }
-
-  _resize(){
-    const rect = this.cv.getBoundingClientRect();
-    this.w = Math.max(1, rect.width);
-    this.h = Math.max(1, rect.height);
-    this.cv.width  = Math.floor(this.w * this.dpr);
-    this.cv.height = Math.floor(this.h * this.dpr);
-    this.ctx.setTransform(this.dpr,0,0,this.dpr,0,0);
-    this.ctx.clearRect(0,0,this.w,this.h);
-  }
-
-  _accent(){
-    try{
-      return getComputedStyle(this.card).getPropertyValue("--accent").trim() || "rgba(96,165,255,1)";
-    }catch{
-      return "rgba(96,165,255,1)";
-    }
-  }
-
-  setCount(count){
-    const c = Number.isFinite(count) ? count : 0;
-    const target = clamp(c / 200, 0, 1);
-    this.load = this.load + (target - this.load) * 0.10;
-  }
-
-  kick(delta){
-    const d = clamp(delta, -60, 60);
-    this.impulse += d * 0.08;
-
-    if (this.card){
-      this.card.classList.remove("pulse");
-      void this.card.offsetWidth;
-      this.card.classList.add("pulse");
-    }
-  }
-
-  _pushSample(v){
-    this.buf[this.write] = v;
-    this.write = (this.write + 1) % this.N;
-  }
-
-  _nextSample(dt){
-    this.phase += dt * 3.1;
-    this.phase2 += dt * 1.7;
-
-    const micro = (Math.sin(this.phase) * 0.004) + (Math.sin(this.phase2) * 0.003);
-
-    this.impulse *= 0.90;
-    const pulse = clamp(this.impulse, -1.2, 1.2);
-
-    this._pushSample(clamp(micro + pulse, -1.5, 1.5));
-  }
-
-  step(dt){
-    this.acc += dt;
-    while (this.acc >= this.sampleDt){
-      this._nextSample(this.sampleDt);
-      this.acc -= this.sampleDt;
-    }
-  }
-
-  render(){
-    const ctx = this.ctx;
-    const w = this.w, h = this.h;
-
-    ctx.save();
-    ctx.globalCompositeOperation = "source-over";
-    ctx.fillStyle = "rgba(0,0,0,0.22)";
-    ctx.fillRect(0,0,w,h);
-    ctx.restore();
-
-    const mid = h * 0.56;
-    const ampPx = h * 0.20;
-    const accent = this._accent();
-
-    ctx.save();
-    ctx.strokeStyle = "rgba(255,255,255,0.09)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, mid);
-    ctx.lineTo(w, mid);
-    ctx.stroke();
-    ctx.restore();
-
-    const sampleAt = (i) => this.buf[(this.write + i) % this.N];
-    const glowA = 0.05 + this.load * 0.10;
-    const coreA = 0.88;
-
-    const draw = (lw, a, c) => {
-      ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      ctx.globalAlpha = a;
-      ctx.lineWidth = lw;
-      ctx.strokeStyle = c;
-      ctx.lineJoin = "round";
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      for (let x=0; x<=w; x++){
-        const t = x / w;
-        const idx = Math.floor(t * (this.N - 1));
-        const v = sampleAt(idx);
-        const y = mid - (v * ampPx);
-        if (x === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-      ctx.restore();
-    };
-
-    draw(8, glowA * 0.55, accent);
-    draw(5, glowA * 0.75, accent);
-    draw(2.0, coreA, "rgba(255,255,255,0.92)");
-    draw(1.4, coreA, accent);
-
-    const newest = this.buf[(this.write + this.N - 1) % this.N];
-    const yN = mid - (newest * ampPx);
-
-    ctx.save();
-    ctx.globalCompositeOperation = "lighter";
-    ctx.globalAlpha = 0.70 + this.load * 0.20;
-    ctx.fillStyle = accent;
-    ctx.beginPath();
-    ctx.arc(w - 3, yN, 2.8, 0, Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-  }
-}
-
-const WAVES = {};
-let _lastFrame = performance.now();
-function initWaves(){
-  WAVES.outlook = new OscilloscopeWave("outlook", "cv_outlook", "w_outlook");
-  WAVES.slack   = new OscilloscopeWave("slack",   "cv_slack",   "w_slack");
-  WAVES.hubspot = new OscilloscopeWave("hubspot", "cv_hubspot", "w_hubspot");
-  WAVES.monday  = new OscilloscopeWave("monday",  "cv_monday",  "w_monday");
-}
-function animate(){
-  const now = performance.now();
-  const dt = Math.min(0.05, (now - _lastFrame) / 1000);
-  _lastFrame = now;
-
-  for (const k of ["outlook","slack","hubspot","monday"]){
-    const w = WAVES[k];
-    if (!w) continue;
-    w.step(dt);
-    w.render();
-  }
-  requestAnimationFrame(animate);
-}
-
+/* =========================
+   Rendering
+   ========================= */
 function computeTotals(c){
   return (c.outlook||0)+(c.slack||0)+(c.hubspot||0)+(c.monday||0);
 }
@@ -357,13 +164,45 @@ function computeDeltas(counts){
   deltas.total = deltas.outlook + deltas.slack + deltas.hubspot + deltas.monday;
   return { deltas };
 }
-function updateLights(counts){
-  setLight("outlook", (counts.outlook||0) > 0);
-  setLight("slack",   (counts.slack||0) > 0);
-  setLight("hubspot", (counts.hubspot||0) > 0);
-  setLight("monday",  (counts.monday||0) > 0);
+
+function statusFor(value, redline){
+  const v = Number.isFinite(value) ? value : 0;
+  const warnAt = Math.ceil(redline * 0.60);
+
+  if (v >= redline) return { level: "bad",  label: "CRITICAL" };
+  if (v >= warnAt)  return { level: "warn", label: "ELEVATED" };
+  if (v > 0)        return { level: "ok",   label: "OK" };
+  return { level: "idle", label: "IDLE" };
 }
-function updateBusyMode(total){
+
+function setCard(key, value, delta, max, redline, isTotal=false){
+  const card = $(`card_${key}`);
+  const statusEl = $(`status_${key}`);
+  const valEl = $(`val_${key}`);
+  const metaEl = $(`meta_${key}`);
+
+  if (!card || !statusEl || !valEl || !metaEl) return;
+
+  const v = Number.isFinite(value) ? value : 0;
+  const d = (delta == null) ? null : delta;
+
+  const s = statusFor(v, redline);
+  card.dataset.status = s.level;
+  statusEl.textContent = s.label;
+
+  card.style.setProperty("--p", pct(v, max));
+
+  valEl.textContent = String(v);
+
+  if (d == null){
+    metaEl.textContent = isTotal ? "New since baseline: —" : "Since baseline: —";
+  }else{
+    const sign = d > 0 ? "+" : "";
+    metaEl.textContent = isTotal ? `New since baseline: ${sign}${d}` : `Since baseline: ${sign}${d}`;
+  }
+}
+
+function updateMode(total){
   const red = CONFIG.scale.redline.total;
   if (total >= red) setMode("REDLINE");
   else if (total >= Math.ceil(red * 0.55)) setMode("BUSY");
@@ -371,11 +210,11 @@ function updateBusyMode(total){
   else setMode("IDLE");
 }
 
-let lastCounts = { outlook: null, slack: null, hubspot: null, monday: null };
-
+/* =========================
+   Refresh
+   ========================= */
 async function refreshAll(){
-  setLight("check", false);
-  $("pollState").textContent = "PULLING";
+  setPollMeta("POLL: PULLING • API: —");
 
   const t0 = performance.now();
   try{
@@ -392,53 +231,38 @@ async function refreshAll(){
     };
     counts.total = computeTotals(counts);
 
-    $("val_outlook").textContent = String(counts.outlook);
-    $("val_slack").textContent = String(counts.slack);
-    $("val_hubspot").textContent = String(counts.hubspot);
-    $("val_monday").textContent = String(counts.monday);
-
     const { deltas } = computeDeltas(counts);
-    const fmt = (v, key) => {
-      if (v == null) return key === "total" ? "New since baseline: —" : "Since baseline: —";
-      const sign = v > 0 ? "+" : "";
-      return key === "total" ? `New since baseline: ${sign}${v}` : `Since baseline: ${sign}${v}`;
-    };
 
-    $("meta_outlook").textContent = fmt(deltas?.outlook ?? null, "outlook");
-    $("meta_slack").textContent   = fmt(deltas?.slack ?? null, "slack");
-    $("meta_hubspot").textContent = fmt(deltas?.hubspot ?? null, "hubspot");
-    $("meta_monday").textContent  = fmt(deltas?.monday ?? null, "monday");
+    // Mini breakdown under TOTAL
+    $("mini_outlook").textContent = String(counts.outlook);
+    $("mini_slack").textContent = String(counts.slack);
+    $("mini_hubspot").textContent = String(counts.hubspot);
+    $("mini_monday").textContent = String(counts.monday);
 
-    renderTotalGauge(counts.total, deltas?.total ?? null);
+    // Render cards
+    setCard("total", counts.total, deltas?.total ?? null, CONFIG.scale.max.total, CONFIG.scale.redline.total, true);
+    setCard("outlook", counts.outlook, deltas?.outlook ?? null, CONFIG.scale.max.outlook, CONFIG.scale.redline.outlook);
+    setCard("slack", counts.slack, deltas?.slack ?? null, CONFIG.scale.max.slack, CONFIG.scale.redline.slack);
+    setCard("hubspot", counts.hubspot, deltas?.hubspot ?? null, CONFIG.scale.max.hubspot, CONFIG.scale.redline.hubspot);
+    setCard("monday", counts.monday, deltas?.monday ?? null, CONFIG.scale.max.monday, CONFIG.scale.redline.monday);
 
-    for (const k of ["outlook","slack","hubspot","monday"]){
-      const prev = Number.isFinite(lastCounts[k]) ? lastCounts[k] : null;
-      const cur  = counts[k] ?? 0;
-
-      WAVES[k]?.setCount(cur);
-      if (prev != null && cur !== prev){
-        WAVES[k]?.kick(cur - prev);
-      }
-      lastCounts[k] = cur;
-    }
-
-    updateLights(counts);
-    updateBusyMode(counts.total);
+    updateMode(counts.total);
     setUpdateTime(nowStr());
 
     const ms = Math.round(performance.now() - t0);
-    $("apiMs").textContent = `${ms}ms`;
-    $("pollState").textContent = "LIVE";
+    setPollMeta(`POLL: LIVE • API: ${ms}ms`);
   }catch(e){
     console.error(e);
-    setLight("check", true);
     setMode("CHECK");
     setUpdateTime(nowStr());
-    $("pollState").textContent = "ERROR";
-    $("apiMs").textContent = "—";
+    setPollMeta("POLL: ERROR • API: —");
+    // Keep last-known values on screen (don’t blank the dashboard)
   }
 }
 
+/* =========================
+   Auth
+   ========================= */
 async function signIn(){
   const loginReq = { scopes: SCOPES };
 
@@ -474,35 +298,35 @@ async function signOut(){
   const acc = activeAccount;
   activeAccount = null;
 
-  setButtons(false);
-  setDriver("—");
-  setMode("IDLE");
-  setUpdateTime("—");
-  setBaselineUI();
-
-  for (const k of ["outlook","slack","hubspot","monday"]){
-    $(`val_${k}`).textContent = "—";
-    $(`meta_${k}`).textContent = "Since baseline: —";
-    lastCounts[k] = null;
-    WAVES[k]?.setCount(0);
-  }
-
-  $("val_total").textContent = "—";
-  $("meta_total").textContent = "New since baseline: —";
-
-  setLight("outlook", false);
-  setLight("slack", false);
-  setLight("hubspot", false);
-  setLight("monday", false);
-  setLight("check", false);
-
-  $("pollState").textContent = "IDLE";
-  $("apiMs").textContent = "—";
-
   if (autoTimer){
     clearInterval(autoTimer);
     autoTimer = null;
     $("btnAuto").textContent = "AUTO: OFF";
+  }
+
+  setButtons(false);
+  setDriver("—");
+  setUpdateTime("—");
+  setBaselineUI();
+  setMode("IDLE");
+  setPollMeta("POLL: IDLE • API: —");
+
+  // Clear UI
+  for (const k of ["total","outlook","slack","hubspot","monday"]){
+    const card = $(`card_${k}`);
+    const status = $(`status_${k}`);
+    const val = $(`val_${k}`);
+    const meta = $(`meta_${k}`);
+    if (card) card.dataset.status = "idle";
+    if (status) status.textContent = "IDLE";
+    if (val) val.textContent = "—";
+    if (meta) meta.textContent = (k === "total") ? "New since baseline: —" : "Since baseline: —";
+    if (card) card.style.setProperty("--p", 0);
+  }
+
+  for (const k of ["mini_outlook","mini_slack","mini_hubspot","mini_monday"]){
+    const el = $(k);
+    if (el) el.textContent = "—";
   }
 
   if (acc){
@@ -521,10 +345,11 @@ function toggleAuto(){
   $("btnAuto").textContent = `AUTO: ${CONFIG.autoRefreshSeconds}s`;
 }
 
+/* =========================
+   Init
+   ========================= */
 window.addEventListener("load", () => {
   setAppLinks();
-  initWaves();
-  requestAnimationFrame(animate);
 
   const msalConfig = {
     auth: {
@@ -536,17 +361,16 @@ window.addEventListener("load", () => {
   };
   msalApp = new msal.PublicClientApplication(msalConfig);
 
-  $("btnIgnition").onclick = () => signIn().catch(err => { console.error(err); setLight("check", true); });
-  $("btnRefresh").onclick  = () => refreshAll().catch(() => setLight("check", true));
+  $("btnIgnition").onclick = () => signIn().catch(console.error);
+  $("btnRefresh").onclick  = () => refreshAll().catch(console.error);
   $("btnBaseline").onclick = () => setBaselineFromCurrent();
   $("btnAuto").onclick     = () => toggleAuto();
-  $("btnSignOut").onclick  = () => signOut().catch(() => {});
+  $("btnSignOut").onclick  = () => signOut().catch(console.error);
 
   setButtons(false);
   setDriver("—");
   setUpdateTime("—");
   setBaselineUI();
   setMode("IDLE");
-  $("pollState").textContent = "IDLE";
-  $("apiMs").textContent = "—";
+  setPollMeta("POLL: IDLE • API: —");
 });
