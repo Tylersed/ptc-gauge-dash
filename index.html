@@ -12,7 +12,6 @@
     :root{
       /* =========================
          PTC LINKS HUB – Color System
-         (Company palette you provided)
          ========================= */
 
       /* Core Brand */
@@ -57,7 +56,6 @@
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
       color: var(--text);
       background:
-        /* Glow overlays (Ivory radiance) */
         radial-gradient(1100px 650px at 16% 8%, rgba(245,244,239,0.10), transparent 62%),
         radial-gradient(900px 600px at 86% 18%, rgba(245,244,239,0.06), transparent 64%),
         radial-gradient(900px 520px at 55% 112%, rgba(255,255,255,0.05), transparent 60%),
@@ -65,10 +63,11 @@
       overflow-x:hidden;
     }
 
-    /* subtle grid */
+    /* subtle grid (behind everything) */
     body::before{
       content:"";
       position:fixed; inset:0;
+      z-index:0;
       background-image:
         linear-gradient(rgba(245,244,239,0.06) 1px, transparent 1px),
         linear-gradient(90deg, rgba(245,244,239,0.06) 1px, transparent 1px);
@@ -78,11 +77,15 @@
       filter: blur(0.25px);
     }
 
-    /* white sparkles */
+    /* sparkles (Links Hub style) */
     body::after{
       content:"";
-      position:fixed; inset:0;
+      position:fixed;
+      inset:0;
+      z-index:0;
       pointer-events:none;
+      opacity: 0.55;
+      mix-blend-mode: screen;
       background:
         radial-gradient(2px 2px at 12% 18%, rgba(255,255,255,0.55), transparent 60%),
         radial-gradient(1.5px 1.5px at 22% 58%, rgba(255,255,255,0.45), transparent 60%),
@@ -92,9 +95,28 @@
         radial-gradient(1.5px 1.5px at 66% 62%, rgba(255,255,255,0.30), transparent 60%),
         radial-gradient(2px 2px at 78% 34%, rgba(255,255,255,0.36), transparent 60%),
         radial-gradient(1.5px 1.5px at 84% 78%, rgba(255,255,255,0.28), transparent 60%),
-        radial-gradient(2px 2px at 92% 50%, rgba(255,255,255,0.33), transparent 60%);
-      opacity: 0.45;
+        radial-gradient(2px 2px at 92% 50%, rgba(255,255,255,0.33), transparent 60%),
+
+        radial-gradient(1px 1px at 9% 42%, rgba(245,244,239,0.55), transparent 60%),
+        radial-gradient(1px 1px at 18% 86%, rgba(245,244,239,0.42), transparent 60%),
+        radial-gradient(1px 1px at 31% 12%, rgba(245,244,239,0.45), transparent 60%),
+        radial-gradient(1px 1px at 47% 46%, rgba(245,244,239,0.38), transparent 60%),
+        radial-gradient(1px 1px at 63% 84%, rgba(245,244,239,0.32), transparent 60%),
+        radial-gradient(1px 1px at 74% 10%, rgba(245,244,239,0.40), transparent 60%),
+        radial-gradient(1px 1px at 88% 24%, rgba(245,244,239,0.34), transparent 60%);
+      filter: blur(0.15px);
+      animation: ptcSparkleTwinkle 7s ease-in-out infinite alternate;
     }
+    @keyframes ptcSparkleTwinkle{
+      0%   { opacity: 0.35; transform: translate3d(0,0,0); }
+      100% { opacity: 0.60; transform: translate3d(0,-2px,0); }
+    }
+    @media (prefers-reduced-motion: reduce){
+      body::after{ animation:none; }
+    }
+
+    /* Keep UI above sparkle/grid layers */
+    .topbar, .wrap, .panel, .card{ position: relative; z-index: 1; }
 
     .topbar{
       position: sticky; top:0; z-index:50;
@@ -107,7 +129,6 @@
 
     .brand{ display:flex; align-items:center; gap:12px; }
 
-    /* Links Hub badge vibe (Ivory/White) */
     .logo{
       width:46px; height:46px; display:grid; place-items:center;
       border-radius: 14px;
@@ -157,6 +178,12 @@
       box-shadow: 0 0 0 1px rgba(245,244,239,0.08) inset, 0 18px 44px rgba(0,0,0,0.55);
     }
 
+    .btn.toggled{
+      background: rgba(245,244,239,0.10);
+      border-color: rgba(245,244,239,0.26);
+      box-shadow: 0 0 0 1px rgba(245,244,239,0.08) inset;
+    }
+
     .wrap{ max-width: 1280px; margin: 18px auto 70px; padding: 0 14px; }
 
     .layout{
@@ -204,7 +231,6 @@
 
     .panelBody{ padding: 14px; }
 
-    /* sidebar status */
     .statusGrid{
       display:grid;
       grid-template-columns: 1fr;
@@ -290,7 +316,6 @@
     }
     .scopeNote b{ color: rgba(245,244,239,0.92); }
 
-    /* main header */
     .dashHeaderRow{
       display:flex;
       justify-content:space-between;
@@ -332,7 +357,6 @@
       white-space:nowrap;
     }
 
-    /* dashboard cards */
     .grid{
       display:grid;
       grid-template-columns: repeat(12, minmax(0,1fr));
@@ -440,7 +464,6 @@
       transition: width .25s ease, background .18s ease;
     }
 
-    /* breakdown chips */
     .breakdown{
       margin-top: 12px;
       display:grid;
@@ -469,7 +492,6 @@
       letter-spacing: 0.4px;
     }
 
-    /* status affects pill + bar only (company palette + minimal utilities) */
     .card[data-status="idle"] .pill{ opacity:0.86; }
     .card[data-status="ok"] .pill{
       border-color: rgba(245,244,239,0.22);
@@ -524,6 +546,7 @@
       <button id="btnRefresh" class="btn" disabled>REFRESH</button>
       <button id="btnBaseline" class="btn" disabled>SET BASELINE</button>
       <button id="btnAuto" class="btn" disabled>AUTO: OFF</button>
+      <button id="btnQuiet" class="btn" disabled>QUIET: OFF</button>
       <button id="btnSignOut" class="btn" disabled>SIGN OUT</button>
     </div>
   </header>
@@ -553,6 +576,7 @@
               <div class="statLabel">Mode</div>
               <div class="statValue" id="mode">IDLE</div>
               <div class="statSub" id="pollMeta">POLL: IDLE • API: —</div>
+              <div class="statSub" id="quietMeta">QUIET MODE: OFF</div>
             </div>
           </div>
 
@@ -712,7 +736,14 @@
         monday:  "https://monday.com/"
       },
 
-      autoRefreshSeconds: 60
+      autoRefreshSeconds: 60,
+
+      ding: {
+        enabled: true,
+        masterVolume: 1.25,   // louder overall (compressor prevents harsh clipping)
+        gain: 0.95,
+        lengthMs: 190
+      }
     };
 
     const GRAPH = "https://graph.microsoft.com/v1.0";
@@ -720,17 +751,48 @@
 
     let msalApp;
     let activeAccount = null;
+
     let autoTimer = null;
+    let quietMode = false;
+
+    let audioCtx = null;
+    let audioUnlocked = false;
 
     const $ = (id) => document.getElementById(id);
     const nowStr = () => new Date().toLocaleString();
     const clamp = (n,a,b) => Math.max(a, Math.min(b,n));
     const pct = (value, max) => clamp((value || 0) / Math.max(1, max), 0, 1);
 
+    function quietKey(){
+      const id = activeAccount?.homeAccountId || "global";
+      return `ptc_comms_quiet_${id}`;
+    }
+    function loadQuiet(){
+      try{
+        const raw = localStorage.getItem(quietKey());
+        return raw ? JSON.parse(raw) : false;
+      }catch{ return false; }
+    }
+    function saveQuiet(v){
+      try{ localStorage.setItem(quietKey(), JSON.stringify(!!v)); }catch{}
+    }
+    function setQuietUI(){
+      $("btnQuiet").textContent = quietMode ? "QUIET: ON" : "QUIET: OFF";
+      $("btnQuiet").classList.toggle("toggled", !!quietMode);
+      $("quietMeta").textContent = quietMode ? "QUIET MODE: ON" : "QUIET MODE: OFF";
+    }
+
+    function setAutoUI(){
+      const on = !!autoTimer;
+      $("btnAuto").textContent = on ? `AUTO: ${CONFIG.autoRefreshSeconds}s` : "AUTO: OFF";
+      $("btnAuto").classList.toggle("toggled", on);
+    }
+
     function setButtons(signedIn){
       $("btnRefresh").disabled = !signedIn;
       $("btnBaseline").disabled = !signedIn;
       $("btnAuto").disabled = !signedIn;
+      $("btnQuiet").disabled = !signedIn;
       $("btnSignOut").disabled = !signedIn;
     }
     function setMode(t){ $("mode").textContent = t; }
@@ -842,6 +904,7 @@
     }
 
     function flashCard(card){
+      if (quietMode) return;
       if (!card) return;
       card.classList.remove("flash");
       void card.offsetWidth;
@@ -849,7 +912,95 @@
       setTimeout(()=> card.classList.remove("flash"), 420);
     }
 
+    function ensureAudio(){
+      if (!CONFIG.ding.enabled) return;
+      if (audioCtx) return;
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      audioCtx = new Ctx();
+    }
+
+    async function unlockAudio(){
+      if (!CONFIG.ding.enabled) return;
+      ensureAudio();
+      if (!audioCtx) return;
+
+      try{
+        if (audioCtx.state === "suspended") await audioCtx.resume();
+
+        // Tiny blip to satisfy user-gesture gating
+        const g = audioCtx.createGain();
+        g.gain.value = 0.0001;
+        g.connect(audioCtx.destination);
+
+        const o = audioCtx.createOscillator();
+        o.type = "sine";
+        o.frequency.value = 440;
+        o.connect(g);
+
+        const t = audioCtx.currentTime;
+        o.start(t);
+        o.stop(t + 0.03);
+
+        audioUnlocked = true;
+      }catch{
+        audioUnlocked = false;
+      }
+    }
+
+    function playDing(){
+      if (!CONFIG.ding.enabled) return;
+      if (quietMode) return;
+      ensureAudio();
+      if (!audioCtx || !audioUnlocked) return;
+
+      const now = audioCtx.currentTime;
+
+      const master = audioCtx.createGain();
+      master.gain.value = Math.max(0.1, CONFIG.ding.masterVolume || 1.0);
+
+      // Compressor keeps it loud without nasty clipping
+      const comp = audioCtx.createDynamicsCompressor();
+      comp.threshold.value = -20;
+      comp.knee.value = 18;
+      comp.ratio.value = 12;
+      comp.attack.value = 0.002;
+      comp.release.value = 0.12;
+
+      master.connect(comp);
+      comp.connect(audioCtx.destination);
+
+      const g = audioCtx.createGain();
+      g.connect(master);
+
+      const peak = Math.max(0.05, Math.min(1.0, CONFIG.ding.gain || 0.9));
+      const len = Math.max(0.08, (CONFIG.ding.lengthMs || 180) / 1000);
+
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(peak, now + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + len);
+
+      // Two-oscillator bell-ish "ding"
+      const o1 = audioCtx.createOscillator();
+      o1.type = "triangle";
+      o1.frequency.setValueAtTime(880, now);
+
+      const o2 = audioCtx.createOscillator();
+      o2.type = "sine";
+      o2.frequency.setValueAtTime(1320, now);
+      o2.detune.setValueAtTime(7, now);
+
+      o1.connect(g);
+      o2.connect(g);
+
+      o1.start(now);
+      o2.start(now);
+      o1.stop(now + len + 0.02);
+      o2.stop(now + len + 0.02);
+    }
+
     const lastVals = { total:null, outlook:null, slack:null, hubspot:null, monday:null };
+    const lastCounts = { outlook:null, slack:null, hubspot:null, monday:null, total:null };
 
     function setCard(key, value, delta, max, redline, isTotal=false){
       const card = $(`card_${key}`);
@@ -888,6 +1039,28 @@
       else setMode("IDLE");
     }
 
+    function startAuto(){
+      if (autoTimer) return;
+      autoTimer = setInterval(() => refreshAll().catch(()=>{}), CONFIG.autoRefreshSeconds * 1000);
+      setAutoUI();
+    }
+    function stopAuto(){
+      if (!autoTimer) return;
+      clearInterval(autoTimer);
+      autoTimer = null;
+      setAutoUI();
+    }
+    function toggleAuto(){
+      if (autoTimer) stopAuto();
+      else startAuto();
+    }
+
+    function toggleQuiet(){
+      quietMode = !quietMode;
+      saveQuiet(quietMode);
+      setQuietUI();
+    }
+
     async function refreshAll(){
       setPollMeta("POLL: PULLING • API: —");
       const t0 = performance.now();
@@ -905,6 +1078,19 @@
           monday:  findFolderCount(folders, CONFIG.folders.monday.name)
         };
         counts.total = computeTotals(counts);
+
+        const increased =
+          (lastCounts.total   != null && counts.total   > lastCounts.total)   ||
+          (lastCounts.outlook != null && counts.outlook > lastCounts.outlook) ||
+          (lastCounts.slack   != null && counts.slack   > lastCounts.slack)   ||
+          (lastCounts.hubspot != null && counts.hubspot > lastCounts.hubspot) ||
+          (lastCounts.monday  != null && counts.monday  > lastCounts.monday);
+
+        lastCounts.outlook = counts.outlook;
+        lastCounts.slack = counts.slack;
+        lastCounts.hubspot = counts.hubspot;
+        lastCounts.monday = counts.monday;
+        lastCounts.total = counts.total;
 
         const { deltas } = computeDeltas(counts);
 
@@ -924,6 +1110,8 @@
 
         const ms = Math.round(performance.now() - t0);
         setPollMeta(`POLL: LIVE • API: ${ms}ms`);
+
+        if (increased) playDing();
       }catch(e){
         console.error(e);
         setMode("CHECK");
@@ -939,19 +1127,32 @@
       return window.location.origin + p;
     }
 
-    async function signIn(){
-      const loginReq = { scopes: SCOPES };
+    async function applySignedInState(){
+      setButtons(true);
+      setDriver(activeAccount?.username || "—");
+      setBaselineUI();
 
-      await msalApp.handleRedirectPromise().catch(() => null);
+      quietMode = loadQuiet();
+      setQuietUI();
+
+      // Start AUTO immediately on sign-in (60s)
+      startAuto();
+
+      // Pull immediately
+      await refreshAll();
+    }
+
+    async function signIn(){
+      // user gesture -> unlock loud ding
+      await unlockAudio();
+
+      const loginReq = { scopes: SCOPES };
 
       const existing = msalApp.getAllAccounts();
       if (existing?.length){
         activeAccount = existing[0];
         msalApp.setActiveAccount(activeAccount);
-        setButtons(true);
-        setDriver(activeAccount.username);
-        setBaselineUI();
-        await refreshAll();
+        await applySignedInState();
         return;
       }
 
@@ -964,21 +1165,14 @@
       }
 
       msalApp.setActiveAccount(activeAccount);
-      setButtons(true);
-      setDriver(activeAccount.username);
-      setBaselineUI();
-      await refreshAll();
+      await applySignedInState();
     }
 
     async function signOut(){
       const acc = activeAccount;
       activeAccount = null;
 
-      if (autoTimer){
-        clearInterval(autoTimer);
-        autoTimer = null;
-        $("btnAuto").textContent = "AUTO: OFF";
-      }
+      stopAuto();
 
       setButtons(false);
       setDriver("—");
@@ -986,6 +1180,9 @@
       setBaselineUI();
       setMode("IDLE");
       setPollMeta("POLL: IDLE • API: —");
+
+      quietMode = false;
+      setQuietUI();
 
       for (const k of ["total","outlook","slack","hubspot","monday"]){
         const card = $(`card_${k}`);
@@ -1002,24 +1199,16 @@
         $(k).textContent = "—";
       }
 
+      lastCounts.outlook = lastCounts.slack = lastCounts.hubspot = lastCounts.monday = lastCounts.total = null;
+
       if (acc){
         await msalApp.logoutPopup({ account: acc }).catch(() => {});
       }
     }
 
-    function toggleAuto(){
-      if (autoTimer){
-        clearInterval(autoTimer);
-        autoTimer = null;
-        $("btnAuto").textContent = "AUTO: OFF";
-        return;
-      }
-      autoTimer = setInterval(() => refreshAll().catch(()=>{}), CONFIG.autoRefreshSeconds * 1000);
-      $("btnAuto").textContent = `AUTO: ${CONFIG.autoRefreshSeconds}s`;
-    }
-
     window.addEventListener("load", async () => {
       setAppLinks();
+      setAutoUI();
 
       const waitMsal = async () => {
         for (let i=0;i<60;i++){
@@ -1046,71 +1235,29 @@
 
       await msalApp.handleRedirectPromise().catch(()=>null);
 
+      // If already signed in, load state (AUTO starts). Sound will work after the first user click.
+      const existing = msalApp.getAllAccounts();
+      if (existing?.length){
+        activeAccount = existing[0];
+        msalApp.setActiveAccount(activeAccount);
+        await applySignedInState();
+      } else {
+        setButtons(false);
+        setDriver("—");
+        setUpdateTime("—");
+        setBaselineUI();
+        setMode("IDLE");
+        setPollMeta("POLL: IDLE • API: —");
+        $("quietMeta").textContent = "QUIET MODE: OFF";
+      }
+
       $("btnIgnition").onclick = () => signIn().catch(console.error);
       $("btnRefresh").onclick  = () => refreshAll().catch(console.error);
       $("btnBaseline").onclick = () => setBaselineFromCurrent();
       $("btnAuto").onclick     = () => toggleAuto();
+      $("btnQuiet").onclick    = () => toggleQuiet();
       $("btnSignOut").onclick  = () => signOut().catch(console.error);
-
-      setButtons(false);
-      setDriver("—");
-      setUpdateTime("—");
-      setBaselineUI();
-      setMode("IDLE");
-      setPollMeta("POLL: IDLE • API: —");
     });
-    /* =========================
-   PTC Sparkle Layer (Links Hub style)
-   Paste at VERY BOTTOM of your CSS
-   ========================= */
-
-body::after{
-  content:"";
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-  z-index: 0; /* stays behind UI */
-  opacity: 0.55;
-  mix-blend-mode: screen;
-
-  /* sparkles (white/ivory only) */
-  background:
-    radial-gradient(2px 2px at 12% 18%, rgba(255,255,255,0.55), transparent 60%),
-    radial-gradient(1.5px 1.5px at 22% 58%, rgba(255,255,255,0.45), transparent 60%),
-    radial-gradient(2px 2px at 36% 30%, rgba(255,255,255,0.38), transparent 60%),
-    radial-gradient(1.5px 1.5px at 44% 72%, rgba(255,255,255,0.32), transparent 60%),
-    radial-gradient(2px 2px at 58% 20%, rgba(255,255,255,0.42), transparent 60%),
-    radial-gradient(1.5px 1.5px at 66% 62%, rgba(255,255,255,0.30), transparent 60%),
-    radial-gradient(2px 2px at 78% 34%, rgba(255,255,255,0.36), transparent 60%),
-    radial-gradient(1.5px 1.5px at 84% 78%, rgba(255,255,255,0.28), transparent 60%),
-    radial-gradient(2px 2px at 92% 50%, rgba(255,255,255,0.33), transparent 60%),
-
-    /* extra micro sparkles */
-    radial-gradient(1px 1px at 9% 42%, rgba(245,244,239,0.55), transparent 60%),
-    radial-gradient(1px 1px at 18% 86%, rgba(245,244,239,0.42), transparent 60%),
-    radial-gradient(1px 1px at 31% 12%, rgba(245,244,239,0.45), transparent 60%),
-    radial-gradient(1px 1px at 47% 46%, rgba(245,244,239,0.38), transparent 60%),
-    radial-gradient(1px 1px at 63% 84%, rgba(245,244,239,0.32), transparent 60%),
-    radial-gradient(1px 1px at 74% 10%, rgba(245,244,239,0.40), transparent 60%),
-    radial-gradient(1px 1px at 88% 24%, rgba(245,244,239,0.34), transparent 60%);
-
-  filter: blur(0.15px);
-  animation: ptcSparkleTwinkle 7s ease-in-out infinite alternate;
-}
-
-@keyframes ptcSparkleTwinkle{
-  0%   { opacity: 0.35; transform: translate3d(0,0,0); }
-  100% { opacity: 0.60; transform: translate3d(0,-2px,0); }
-}
-
-/* Keep it calm for motion-sensitive users */
-@media (prefers-reduced-motion: reduce){
-  body::after{ animation: none; }
-}
-
-/* Ensure your UI sits above sparkle layers (safe override) */
-.topbar, .wrap, .panel, .card{ position: relative; z-index: 1; }
-
   </script>
 </body>
 </html>
