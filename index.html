@@ -76,3 +76,93 @@
             <div class="microItem"><span>Slack</span><b id="mini_slack">—</b></div>
             <div class="microItem"><span>HubSpot</span><b id="mini_hubspot">—</b></div>
             <div class="microItem"><span>Monday</span><b id="mini_monday">—</b></div>
+          </div>
+        </div>
+      </article>
+
+      <!-- OUTLOOK -->
+      <article class="card" id="card_outlook" data-key="outlook" data-status="idle" style="--p:0;">
+        <div class="cardHead">
+          <div class="cardTitle">
+            <span class="titleText">OUTLOOK</span>
+            <span class="titleHint">Inbox unread</span>
+          </div>
+          <div class="pill" id="status_outlook">IDLE</div>
+        </div>
+
+        <div class="cardBody">
+          <div class="bigNumber" id="val_outlook">—</div>
+          <div class="meta" id="meta_outlook">Since baseline: —</div>
+          <div class="bar"><div class="barFill"></div></div>
+        </div>
+      </article>
+
+      <!-- SLACK -->
+      <article class="card" id="card_slack" data-key="slack" data-status="idle" style="--p:0;">
+        <div class="cardHead">
+          <div class="cardTitle">
+            <span class="titleText">SLACK</span>
+            <span class="titleHint">Mapped folder unread</span>
+          </div>
+          <div class="pill" id="status_slack">IDLE</div>
+        </div>
+
+        <div class="cardBody">
+          <div class="bigNumber" id="val_slack">—</div>
+          <div class="meta" id="meta_slack">Since baseline: —</div>
+          <div class="bar"><div class="barFill"></div></div>
+        </div>
+      </article>
+
+      <!-- HUBSPOT -->
+      <article class="card" id="card_hubspot" data-key="hubspot" data-status="idle" style="--p:0;">
+        <div class="cardHead">
+          <div class="cardTitle">
+            <span class="titleText">HUBSPOT</span>
+            <span class="titleHint">Mapped folder unread</span>
+          </div>
+          <div class="pill" id="status_hubspot">IDLE</div>
+        </div>
+
+        <div class="cardBody">
+          <div class="bigNumber" id="val_hubspot">—</div>
+          <div class="meta" id="meta_hubspot">Since baseline: —</div>
+          <div class="bar"><div class="barFill"></div></div>
+        </div>
+      </article>
+
+      <!-- MONDAY -->
+      <article class="card" id="card_monday" data-key="monday" data-status="idle" style="--p:0;">
+        <div class="cardHead">
+          <div class="cardTitle">
+            <span class="titleText">MONDAY</span>
+            <span class="titleHint">Mapped folder unread</span>
+          </div>
+          <div class="pill" id="status_monday">IDLE</div>
+        </div>
+
+        <div class="cardBody">
+          <div class="bigNumber" id="val_monday">—</div>
+          <div class="meta" id="meta_monday">Since baseline: —</div>
+          <div class="bar"><div class="barFill"></div></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="actions">
+      <a class="actionBtn" id="link_outlook" target="_blank" rel="noreferrer">Open Outlook</a>
+      <a class="actionBtn" id="link_slack" target="_blank" rel="noreferrer">Open Slack</a>
+      <a class="actionBtn" id="link_hubspot" target="_blank" rel="noreferrer">Open HubSpot</a>
+      <a class="actionBtn" id="link_monday" target="_blank" rel="noreferrer">Open Monday</a>
+    </section>
+
+    <section class="note">
+      <div class="noteTitle">Privacy & scope</div>
+      <div class="noteBody">
+        This dashboard reads <b>unread counts only</b> from Outlook folders and does <b>not</b> read message bodies.
+        Slack/HubSpot/Monday are represented via Outlook folders that receive notification emails.
+      </div>
+    </section>
+  </main>
+</body>
+</html>
