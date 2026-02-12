@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PTC Gauge Cluster • Live Comms Telemetry</title>
+  <title>PTC • Comms Telemetry</title>
 
   <link rel="stylesheet" href="styles.css" />
 
@@ -17,15 +17,15 @@
     <div class="brand">
       <div class="logo">PTC</div>
       <div class="titles">
-        <div class="title">Gauge Cluster</div>
-        <div class="subtitle">Counts only • No message content • Live telemetry</div>
+        <div class="title">Comms Telemetry</div>
+        <div class="subtitle">Counts only • No message content • Company dashboard</div>
       </div>
     </div>
 
     <div class="controls">
-      <button id="btnIgnition" class="btn primary">IGNITION</button>
+      <button id="btnIgnition" class="btn primary">SIGN IN</button>
       <button id="btnRefresh" class="btn" disabled>REFRESH</button>
-      <button id="btnBaseline" class="btn" disabled>TRIP RESET</button>
+      <button id="btnBaseline" class="btn" disabled>SET BASELINE</button>
       <button id="btnAuto" class="btn" disabled>AUTO: OFF</button>
       <button id="btnSignOut" class="btn" disabled>SIGN OUT</button>
     </div>
@@ -33,121 +33,46 @@
 
   <main class="wrap">
     <section class="statusBar">
-      <div class="statusItem"><span class="label">Driver</span><span id="driver">—</span></div>
-      <div class="statusItem"><span class="label">Last Update</span><span id="lastUpdate">—</span></div>
-      <div class="statusItem"><span class="label">Baseline</span><span id="baselineTime">—</span></div>
-      <div class="statusItem"><span class="label">Mode</span><span id="mode">IDLE</span></div>
+      <div class="statusItem">
+        <div class="label">Driver</div>
+        <div class="value" id="driver">—</div>
+      </div>
+      <div class="statusItem">
+        <div class="label">Last Update</div>
+        <div class="value" id="lastUpdate">—</div>
+      </div>
+      <div class="statusItem">
+        <div class="label">Baseline</div>
+        <div class="value" id="baselineTime">—</div>
+      </div>
+      <div class="statusItem">
+        <div class="label">Mode</div>
+        <div class="value" id="mode">IDLE</div>
+        <div class="sub" id="pollMeta">POLL: IDLE • API: —</div>
+      </div>
     </section>
 
-    <section class="lights">
-      <div class="light" data-light="outlook"><div class="bulb"></div><div class="lightLabel">OUTLOOK</div></div>
-      <div class="light" data-light="slack"><div class="bulb"></div><div class="lightLabel">SLACK</div></div>
-      <div class="light" data-light="hubspot"><div class="bulb"></div><div class="lightLabel">HUBSPOT</div></div>
-      <div class="light" data-light="monday"><div class="bulb"></div><div class="lightLabel">MONDAY</div></div>
-      <div class="light danger" data-light="check"><div class="bulb"></div><div class="lightLabel">CHECK</div></div>
-    </section>
-
-    <section class="clusterV3">
+    <section class="dashboard">
       <!-- TOTAL -->
-      <div class="totalPanel">
-        <div class="gauge gauge--big" id="g_total" data-key="total">
-          <div class="ring">
-            <div class="gaugeTicks"></div>
-            <div class="dialFace"></div>
-            <div class="needle"></div>
-            <div class="hub"></div>
+      <article class="card card--total" id="card_total" data-key="total" data-status="idle" style="--p:0;">
+        <div class="cardHead">
+          <div class="cardTitle">
+            <span class="titleText">TOTAL</span>
+            <span class="titleHint">All sources combined</span>
           </div>
-
-          <div class="gaugeCenter">
-            <div class="gaugeName">TOTAL</div>
-            <div class="gaugeValue" id="val_total">—</div>
-            <div class="gaugeMeta" id="meta_total">New since baseline: —</div>
-          </div>
-
-          <div class="ticks">
-            <span class="tickLabel left">IDLE</span>
-            <span class="tickLabel mid">BUSY</span>
-            <span class="tickLabel right">REDLINE</span>
-          </div>
+          <div class="pill" id="status_total">IDLE</div>
         </div>
 
-        <div class="microStats">
-          <div class="chip"><span class="chipLabel">POLL</span><span class="chipVal" id="pollState">IDLE</span></div>
-          <div class="chip"><span class="chipLabel">API</span><span class="chipVal" id="apiMs">—</span></div>
-          <div class="chip"><span class="chipLabel">WAVE</span><span class="chipVal">LIVE</span></div>
-        </div>
-      </div>
+        <div class="cardBody">
+          <div class="bigNumber" id="val_total">—</div>
+          <div class="meta" id="meta_total">New since baseline: —</div>
 
-      <!-- WAVES -->
-      <div class="wavesGrid">
-        <div class="waveCard" data-key="outlook" id="w_outlook">
-          <div class="waveTop">
-            <div class="waveName">OUTLOOK</div>
-            <div class="waveNums">
-              <div class="bigNum" id="val_outlook">—</div>
-              <div class="delta" id="meta_outlook">Since baseline: —</div>
-            </div>
+          <div class="bar">
+            <div class="barFill"></div>
           </div>
-          <div class="waveCanvasWrap">
-            <canvas class="waveCanvas" id="cv_outlook"></canvas>
-          </div>
-        </div>
 
-        <div class="waveCard" data-key="slack" id="w_slack">
-          <div class="waveTop">
-            <div class="waveName">SLACK</div>
-            <div class="waveNums">
-              <div class="bigNum" id="val_slack">—</div>
-              <div class="delta" id="meta_slack">Since baseline: —</div>
-            </div>
-          </div>
-          <div class="waveCanvasWrap">
-            <canvas class="waveCanvas" id="cv_slack"></canvas>
-          </div>
-        </div>
-
-        <div class="waveCard" data-key="hubspot" id="w_hubspot">
-          <div class="waveTop">
-            <div class="waveName">HUBSPOT</div>
-            <div class="waveNums">
-              <div class="bigNum" id="val_hubspot">—</div>
-              <div class="delta" id="meta_hubspot">Since baseline: —</div>
-            </div>
-          </div>
-          <div class="waveCanvasWrap">
-            <canvas class="waveCanvas" id="cv_hubspot"></canvas>
-          </div>
-        </div>
-
-        <div class="waveCard" data-key="monday" id="w_monday">
-          <div class="waveTop">
-            <div class="waveName">MONDAY</div>
-            <div class="waveNums">
-              <div class="bigNum" id="val_monday">—</div>
-              <div class="delta" id="meta_monday">Since baseline: —</div>
-            </div>
-          </div>
-          <div class="waveCanvasWrap">
-            <canvas class="waveCanvas" id="cv_monday"></canvas>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="linksRow">
-      <a class="pill" id="link_outlook" target="_blank" rel="noreferrer">Open Outlook</a>
-      <a class="pill" id="link_slack" target="_blank" rel="noreferrer">Open Slack</a>
-      <a class="pill" id="link_hubspot" target="_blank" rel="noreferrer">Open HubSpot</a>
-      <a class="pill" id="link_monday" target="_blank" rel="noreferrer">Open Monday</a>
-    </section>
-
-    <section class="footerNote">
-      <div class="noteTitle">How “web-page only” works</div>
-      <div class="noteBody">
-        This dashboard reads <b>folder unread counts</b> from Outlook (Inbox + your “Alerts” folders). It never reads message bodies.
-        Slack/HubSpot/Monday become count-only by routing their notification emails into Outlook folders.
-      </div>
-    </section>
-  </main>
-</body>
-</html>
+          <div class="micro">
+            <div class="microItem"><span>Outlook</span><b id="mini_outlook">—</b></div>
+            <div class="microItem"><span>Slack</span><b id="mini_slack">—</b></div>
+            <div class="microItem"><span>HubSpot</span><b id="mini_hubspot">—</b></div>
+            <div class="microItem"><span>Monday</span><b id="mini_monday">—</b></div>
