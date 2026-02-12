@@ -10,11 +10,18 @@
 
   <style>
     :root{
-      /* ===== PTC LINKS HUB THEME (Brand) ===== */
-      --bg0:#000000; /* True Black */
-      --bg1:#222422; /* Iron Ore */
+      /* =========================
+         PTC LINKS HUB – Color System
+         (Company palette you provided)
+         ========================= */
 
-      /* Glass surfaces */
+      /* Core Brand */
+      --bg0:#000000;                 /* True Black */
+      --bg1:#222422;                 /* Iron Ore */
+      --ivory:#F5F4EF;               /* Ivory */
+      --white:#FFFFFF;               /* Pure White */
+
+      /* Glass surfaces (Iron Ore glass) */
       --glass1: rgba(34, 36, 34, 0.56);
       --glass2: rgba(34, 36, 34, 0.78);
 
@@ -23,11 +30,11 @@
       --border2: rgba(245,244,239,0.10);
 
       /* Text */
-      --text:#FFFFFF;
+      --text: #FFFFFF;
       --muted: rgba(245,244,239,0.78);
       --muted2: rgba(245,244,239,0.58);
 
-      /* Chips */
+      /* Chips / tags */
       --chipBg: rgba(0,0,0,.18);
       --chipBorder: rgba(245,244,239,.14);
       --chipText: rgba(245,244,239,.84);
@@ -35,11 +42,11 @@
       /* Layout */
       --radius: 18px;
 
-      /* Status / bars (keep as-is) */
-      --ok:   rgba(96,165,255,0.78);
-      --warn: rgba(255,204,102,0.80);
-      --bad:  rgba(255,77,109,0.82);
+      /* Status (minimal utility colors; OK uses Ivory so no blue) */
       --idle: rgba(245,244,239,0.26);
+      --ok:   rgba(245,244,239,0.78);          /* brand OK = Ivory */
+      --warn: rgba(255, 206, 102, .95);        /* utility */
+      --bad:  rgba(255, 92, 92, .92);          /* utility */
     }
 
     *{ box-sizing:border-box; }
@@ -50,6 +57,7 @@
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
       color: var(--text);
       background:
+        /* Glow overlays (Ivory radiance) */
         radial-gradient(1100px 650px at 16% 8%, rgba(245,244,239,0.10), transparent 62%),
         radial-gradient(900px 600px at 86% 18%, rgba(245,244,239,0.06), transparent 64%),
         radial-gradient(900px 520px at 55% 112%, rgba(255,255,255,0.05), transparent 60%),
@@ -99,6 +107,7 @@
 
     .brand{ display:flex; align-items:center; gap:12px; }
 
+    /* Links Hub badge vibe (Ivory/White) */
     .logo{
       width:46px; height:46px; display:grid; place-items:center;
       border-radius: 14px;
@@ -460,19 +469,19 @@
       letter-spacing: 0.4px;
     }
 
-    /* status affects pill + bar only */
+    /* status affects pill + bar only (company palette + minimal utilities) */
     .card[data-status="idle"] .pill{ opacity:0.86; }
     .card[data-status="ok"] .pill{
-      border-color: rgba(96,165,255,0.22);
-      background: rgba(96,165,255,0.08);
+      border-color: rgba(245,244,239,0.22);
+      background: rgba(245,244,239,0.08);
     }
     .card[data-status="warn"] .pill{
-      border-color: rgba(255,204,102,0.24);
-      background: rgba(255,204,102,0.08);
+      border-color: rgba(255,206,102,0.24);
+      background: rgba(255,206,102,0.08);
     }
     .card[data-status="bad"] .pill{
-      border-color: rgba(255,77,109,0.26);
-      background: rgba(255,77,109,0.08);
+      border-color: rgba(255,92,92,0.26);
+      background: rgba(255,92,92,0.08);
     }
 
     .card[data-status="idle"] .barFill{ background: var(--idle); }
