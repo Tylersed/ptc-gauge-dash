@@ -1,1222 +1,1061 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PTC • Comms Telemetry</title>
-
-  <!-- MSAL (Entra sign-in) -->
-  <script defer src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
-
-  <style>
-    :root{
-      /* =========================
-         PTC LINKS HUB – Color System
-         ========================= */
-
-      /* Core Brand */
-      --bg0:#000000;                 /* True Black */
-      --bg1:#222422;                 /* Iron Ore */
-      --ivory:#F5F4EF;               /* Ivory */
-      --white:#FFFFFF;               /* Pure White */
-
-      /* Glass surfaces (Iron Ore glass) */
-      --glass1: rgba(34, 36, 34, 0.56);
-      --glass2: rgba(34, 36, 34, 0.78);
-
-      /* Borders (Ivory outlines) */
-      --border1: rgba(245,244,239,0.14);
-      --border2: rgba(245,244,239,0.10);
-
-      /* Text */
-      --text: #FFFFFF;
-      --muted: rgba(245,244,239,0.78);
-      --muted2: rgba(245,244,239,0.58);
-
-      /* Chips / tags */
-      --chipBg: rgba(0,0,0,.18);
-      --chipBorder: rgba(245,244,239,.14);
-      --chipText: rgba(245,244,239,.84);
-
-      /* Layout */
-      --radius: 18px;
-
-      /* Status (minimal utility colors; OK uses Ivory so no blue) */
-      --idle: rgba(245,244,239,0.26);
-      --ok:   rgba(245,244,239,0.78);          /* brand OK = Ivory */
-      --warn: rgba(255, 206, 102, .95);        /* utility */
-      --bad:  rgba(255, 92, 92, .92);          /* utility */
-    }
-
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
-
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      color: var(--text);
-      background:
-        radial-gradient(1100px 650px at 16% 8%, rgba(245,244,239,0.10), transparent 62%),
-        radial-gradient(900px 600px at 86% 18%, rgba(245,244,239,0.06), transparent 64%),
-        radial-gradient(900px 520px at 55% 112%, rgba(255,255,255,0.05), transparent 60%),
-        linear-gradient(180deg, var(--bg0), var(--bg1));
-      overflow-x:hidden;
-    }
-
-    /* subtle grid */
-    body::before{
-      content:"";
-      position:fixed; inset:0;
-      background-image:
-        linear-gradient(rgba(245,244,239,0.06) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(245,244,239,0.06) 1px, transparent 1px);
-      background-size: 56px 56px;
-      opacity: 0.07;
-      pointer-events:none;
-      filter: blur(0.25px);
-    }
-
-    /* white sparkles */
-    body::after{
-      content:"";
-      position:fixed; inset:0;
-      pointer-events:none;
-      background:
-        radial-gradient(2px 2px at 12% 18%, rgba(255,255,255,0.55), transparent 60%),
-        radial-gradient(1.5px 1.5px at 22% 58%, rgba(255,255,255,0.45), transparent 60%),
-        radial-gradient(2px 2px at 36% 30%, rgba(255,255,255,0.38), transparent 60%),
-        radial-gradient(1.5px 1.5px at 44% 72%, rgba(255,255,255,0.32), transparent 60%),
-        radial-gradient(2px 2px at 58% 20%, rgba(255,255,255,0.42), transparent 60%),
-        radial-gradient(1.5px 1.5px at 66% 62%, rgba(255,255,255,0.30), transparent 60%),
-        radial-gradient(2px 2px at 78% 34%, rgba(255,255,255,0.36), transparent 60%),
-        radial-gradient(1.5px 1.5px at 84% 78%, rgba(255,255,255,0.28), transparent 60%),
-        radial-gradient(2px 2px at 92% 50%, rgba(255,255,255,0.33), transparent 60%);
-      opacity: 0.45;
-    }
-
-    .topbar{
-      position: sticky; top:0; z-index:50;
-      display:flex; justify-content:space-between; align-items:center;
-      padding: 14px 18px;
-      border-bottom: 1px solid var(--border2);
-      background: rgba(0,0,0,0.52);
-      backdrop-filter: blur(12px);
-    }
-
-    .brand{ display:flex; align-items:center; gap:12px; }
-
-    .logo{
-      width:46px; height:46px; display:grid; place-items:center;
-      border-radius: 14px;
-      font-weight:1000; letter-spacing:1px;
-      background: linear-gradient(180deg, rgba(255,255,255,.95), rgba(245,244,239,.92));
-      color:#111;
-      border: 1px solid rgba(245,244,239,0.30);
-      box-shadow: 0 14px 40px rgba(0,0,0,0.55);
-      user-select:none;
-    }
-
-    .titles .title{
-      font-weight:1000;
-      letter-spacing:0.8px;
-      font-size: 14px;
-      text-transform: uppercase;
-    }
-    .titles .subtitle{
-      font-size:12px;
-      color: var(--muted);
-      margin-top:2px;
-    }
-
-    .controls{ display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
-
-    .btn{
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid var(--border1);
-      background: rgba(0,0,0,0.18);
-      color: rgba(245,244,239,0.92);
-      font-weight: 950;
-      letter-spacing:0.7px;
-      cursor:pointer;
-      transition: transform .12s ease, background .12s ease, border-color .12s ease, opacity .12s ease;
-    }
-    .btn:hover{
-      transform: translateY(-1px);
-      background: rgba(245,244,239,0.06);
-      border-color: rgba(245,244,239,0.18);
-    }
-    .btn:disabled{ opacity:0.45; cursor:not-allowed; transform:none; }
-
-    .btn.primary{
-      background: rgba(245,244,239,0.08);
-      border-color: rgba(245,244,239,0.22);
-      box-shadow: 0 0 0 1px rgba(245,244,239,0.08) inset, 0 18px 44px rgba(0,0,0,0.55);
-    }
-
-    .btn.toggled{
-      background: rgba(245,244,239,0.10);
-      border-color: rgba(245,244,239,0.26);
-      box-shadow: 0 0 0 1px rgba(245,244,239,0.08) inset;
-    }
-
-    .wrap{ max-width: 1280px; margin: 18px auto 70px; padding: 0 14px; }
-
-    .layout{
-      display:grid;
-      grid-template-columns: 300px 1fr;
-      gap: 14px;
-      align-items:start;
-    }
-    @media (max-width: 980px){
-      .layout{ grid-template-columns: 1fr; }
-    }
-
-    .panel{
-      border-radius: var(--radius);
-      border: 1px solid var(--border2);
-      background: linear-gradient(180deg, var(--glass1), var(--glass2));
-      box-shadow: 0 26px 86px rgba(0,0,0,0.55);
-      overflow:hidden;
-    }
-
-    .panelHeader{
-      padding: 14px 14px 12px;
-      border-bottom: 1px solid rgba(245,244,239,0.10);
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap: 10px;
-    }
-
-    .panelTitle{
-      font-size: 12px;
-      letter-spacing: 1.7px;
-      text-transform: uppercase;
-      font-weight: 1000;
-      color: rgba(245,244,239,0.92);
-      display:flex; align-items:center; gap:10px;
-    }
-
-    .panelTitle::before{
-      content:"";
-      width:10px; height:10px; border-radius: 999px;
-      background: rgba(245,244,239,0.70);
-      box-shadow: 0 0 18px rgba(245,244,239,0.12);
-    }
-
-    .panelBody{ padding: 14px; }
-
-    .statusGrid{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-    }
-
-    .stat{
-      border: 1px solid rgba(245,244,239,0.12);
-      border-radius: 14px;
-      background: rgba(0,0,0,0.18);
-      padding: 10px 12px;
-    }
-
-    .statLabel{
-      font-size:11px;
-      color: var(--muted2);
-      letter-spacing:1px;
-      font-weight:950;
-      text-transform:uppercase;
-    }
-
-    .statValue{
-      margin-top: 4px;
-      font-weight: 1000;
-      font-size: 13px;
-      color: rgba(245,244,239,0.92);
-      word-break: break-word;
-    }
-
-    .statSub{
-      margin-top: 6px;
-      font-size: 11px;
-      color: var(--muted2);
-      letter-spacing: 0.6px;
-    }
-
-    .quickLinks{
-      display:flex;
-      flex-direction:column;
-      gap: 10px;
-      margin-top: 12px;
-    }
-
-    .linkBtn{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 10px;
-      padding: 12px 12px;
-      border-radius: 14px;
-      border: 1px solid var(--border1);
-      background: rgba(0,0,0,0.18);
-      text-decoration:none;
-      color: rgba(245,244,239,0.94);
-      font-weight: 950;
-      letter-spacing: 0.6px;
-      transition: transform .12s ease, background .12s ease, border-color .12s ease;
-    }
-
-    .linkBtn:hover{
-      background: rgba(245,244,239,0.06);
-      transform: translateY(-1px);
-      border-color: rgba(245,244,239,0.18);
-    }
-
-    .linkMeta{
-      font-size: 11px;
-      color: rgba(245,244,239,0.72);
-      font-weight: 900;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-    }
-
-    .scopeNote{
-      margin-top: 12px;
-      padding: 12px 12px;
-      border-radius: 14px;
-      border: 1px solid rgba(245,244,239,0.12);
-      background: rgba(0,0,0,0.18);
-      color: rgba(245,244,239,0.74);
-      font-size: 12.5px;
-      line-height: 1.35;
-    }
-    .scopeNote b{ color: rgba(245,244,239,0.92); }
-
-    .dashHeaderRow{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap: 12px;
-      padding: 14px 14px 12px;
-      border-bottom: 1px solid rgba(245,244,239,0.10);
-    }
-
-    .dashHeaderTitle{
-      display:flex; flex-direction:column; gap:4px;
-    }
-
-    .dashHeaderTitle .h1{
-      font-size: 14px;
-      font-weight: 1000;
-      letter-spacing: 1.6px;
-      text-transform: uppercase;
-      color: rgba(245,244,239,0.92);
-    }
-
-    .dashHeaderTitle .h2{
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .badges{ display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
-
-    .badge{
-      padding: 8px 10px;
-      border-radius: 999px;
-      border: 1px solid var(--chipBorder);
-      background: var(--chipBg);
-      font-weight: 1000;
-      font-size: 11px;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: var(--chipText);
-      white-space:nowrap;
-    }
-
-    .grid{
-      display:grid;
-      grid-template-columns: repeat(12, minmax(0,1fr));
-      gap: 14px;
-      padding: 14px;
-    }
-
-    .card{
-      grid-column: span 6;
-      border-radius: var(--radius);
-      border: 1px solid rgba(245,244,239,0.10);
-      background: rgba(0,0,0,0.18);
-      overflow:hidden;
-    }
-
-    .card.total{ grid-column: span 12; }
-
-    @media (min-width: 1120px){
-      .card.total{ grid-column: span 8; }
-      .card.outlook{ grid-column: span 4; }
-      .card.slack, .card.hubspot, .card.monday{ grid-column: span 4; }
-    }
-    @media (max-width: 1120px){
-      .card{ grid-column: span 12; }
-    }
-
-    .cardHead{
-      padding: 14px 14px 12px;
-      border-bottom: 1px solid rgba(245,244,239,0.10);
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-start;
-      gap: 12px;
-    }
-
-    .nameStack{ display:flex; flex-direction:column; gap:4px; }
-
-    .cardName{
-      font-size: 14px;
-      font-weight: 1000;
-      letter-spacing: 2.0px;
-      text-transform: uppercase;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      color: rgba(245,244,239,0.94);
-    }
-
-    .dot{
-      width:10px; height:10px;
-      border-radius:999px;
-      background: rgba(245,244,239,0.42);
-      box-shadow: 0 0 0 1px rgba(245,244,239,0.10) inset;
-    }
-
-    .cardHint{
-      font-size: 12px;
-      color: rgba(245,244,239,0.62);
-    }
-
-    .pill{
-      padding: 7px 10px;
-      border-radius: 999px;
-      font-weight: 1000;
-      letter-spacing: 1px;
-      font-size: 11px;
-      text-transform: uppercase;
-      border: 1px solid var(--chipBorder);
-      background: var(--chipBg);
-      color: rgba(245,244,239,0.86);
-      white-space: nowrap;
-    }
-
-    .cardBody{ padding: 14px; }
-
-    .big{
-      font-size: 56px;
-      line-height: 1.05;
-      font-weight: 1000;
-      letter-spacing: 0.6px;
-      color: rgba(245,244,239,0.96);
-    }
-    .total .big{ font-size: 68px; }
-
-    .meta{
-      margin-top: 6px;
-      font-size: 12px;
-      font-weight: 900;
-      color: rgba(245,244,239,0.70);
-    }
-
-    .bar{
-      margin-top: 12px;
-      height: 11px;
-      border-radius: 999px;
-      background: rgba(0,0,0,0.22);
-      border: 1px solid rgba(245,244,239,0.10);
-      overflow:hidden;
-    }
-    .barFill{
-      height: 100%;
-      width: calc(var(--p, 0) * 100%);
-      border-radius: 999px;
-      background: var(--ok);
-      transition: width .25s ease, background .18s ease;
-    }
-
-    .breakdown{
-      margin-top: 12px;
-      display:grid;
-      grid-template-columns: repeat(4, minmax(0,1fr));
-      gap: 10px;
-    }
-    @media (max-width: 1120px){
-      .breakdown{ grid-template-columns: 1fr 1fr; }
-    }
-
-    .chip{
-      border: 1px solid rgba(245,244,239,0.10);
-      border-radius: 14px;
-      padding: 10px 10px;
-      background: rgba(0,0,0,0.18);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 10px;
-      color: rgba(245,244,239,0.78);
-      font-size: 12px;
-    }
-    .chip b{
-      font-size: 14px;
-      color: rgba(245,244,239,0.92);
-      letter-spacing: 0.4px;
-    }
-
-    .card[data-status="idle"] .pill{ opacity:0.86; }
-    .card[data-status="ok"] .pill{
-      border-color: rgba(245,244,239,0.22);
-      background: rgba(245,244,239,0.08);
-    }
-    .card[data-status="warn"] .pill{
-      border-color: rgba(255,206,102,0.24);
-      background: rgba(255,206,102,0.08);
-    }
-    .card[data-status="bad"] .pill{
-      border-color: rgba(255,92,92,0.26);
-      background: rgba(255,92,92,0.08);
-    }
-
-    .card[data-status="idle"] .barFill{ background: var(--idle); }
-    .card[data-status="ok"] .barFill{ background: var(--ok); }
-    .card[data-status="warn"] .barFill{ background: var(--warn); }
-    .card[data-status="bad"] .barFill{ background: var(--bad); }
-
-    /* (flash effect is disabled in Quiet Mode via JS) */
-    .card.flash{
-      border-color: rgba(245,244,239,0.22);
-      box-shadow: 0 0 0 1px rgba(245,244,239,0.06) inset;
-      transition: border-color .35s ease;
-    }
-
-    .footerNote{
-      margin-top: 14px;
-      padding: 12px 14px;
-      border-radius: 14px;
-      border: 1px solid rgba(245,244,239,0.12);
-      background: rgba(0,0,0,0.18);
-      color: rgba(245,244,239,0.72);
-      font-size: 12.5px;
-      line-height: 1.35;
-    }
-    .footerNote b{ color: rgba(245,244,239,0.92); }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Peachtree · Meeting Viewer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+ 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   RESET & TOKENS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+:root {
+  --black:    #000000;
+  --iron-ore: #222422;
+  --ivory:    #F5F4EF;
+  --white:    #FFFFFF;
+ 
+  /* Geometry */
+  --radius-sm:  8px;
+  --radius-md:  14px;
+  --radius-lg:  20px;
+  --radius-xl:  28px;
+ 
+  /* Motion */
+  --ease-out:   cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring:cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+ 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   LIGHT THEME
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+[data-theme="light"] {
+  --bg:          var(--ivory);
+  --bg-raised:   var(--white);
+  --bg-sunken:   #EDECE7;
+  --bg-glass:    rgba(255,255,255,0.72);
+  --surface:     var(--white);
+  --border:      rgba(34,36,34,0.10);
+  --border-mid:  rgba(34,36,34,0.18);
+  --text-primary:   var(--iron-ore);
+  --text-secondary: rgba(34,36,34,0.52);
+  --text-tertiary:  rgba(34,36,34,0.35);
+  --accent:      var(--iron-ore);
+  --accent-text: var(--white);
+  --shadow-xs:   0 1px 2px rgba(0,0,0,0.05);
+  --shadow-sm:   0 2px 8px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.04);
+  --shadow-md:   0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05);
+  --shadow-lg:   0 24px 64px rgba(0,0,0,0.14), 0 4px 16px rgba(0,0,0,0.06);
+  --nav-bg:      rgba(245,244,239,0.82);
+}
+ 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   DARK THEME
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+[data-theme="dark"] {
+  --bg:          #161816;
+  --bg-raised:   #1F211F;
+  --bg-sunken:   #111311;
+  --bg-glass:    rgba(31,33,31,0.82);
+  --surface:     #1F211F;
+  --border:      rgba(245,244,239,0.08);
+  --border-mid:  rgba(245,244,239,0.14);
+  --text-primary:   var(--ivory);
+  --text-secondary: rgba(245,244,239,0.50);
+  --text-tertiary:  rgba(245,244,239,0.28);
+  --accent:      var(--ivory);
+  --accent-text: var(--iron-ore);
+  --shadow-xs:   0 1px 2px rgba(0,0,0,0.30);
+  --shadow-sm:   0 2px 8px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.04);
+  --shadow-md:   0 8px 32px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.25);
+  --shadow-lg:   0 24px 64px rgba(0,0,0,0.60), 0 4px 16px rgba(0,0,0,0.30);
+  --nav-bg:      rgba(22,24,22,0.85);
+}
+ 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   BASE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+html { -webkit-font-smoothing: antialiased; }
+ 
+body {
+  font-family: 'Geist', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  transition: background 0.4s var(--ease-out), color 0.4s var(--ease-out);
+  overflow-x: hidden;
+}
+ 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   NAV BAR  — frosted glass, Apple-style
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  background: var(--nav-bg);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--border);
+  transition: background 0.4s var(--ease-out);
+}
+ 
+.nav-inner {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+ 
+/* Wordmark */
+.wordmark {
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+  line-height: 1;
+}
+.wordmark-top {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-primary);
+  transition: color 0.4s;
+}
+.wordmark-sub {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  transition: color 0.4s;
+}
+ 
+/* Nav right controls */
+.nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+ 
+/* Live pill */
+.live-pill {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 40px;
+  transition: all 0.4s;
+}
+.live-pill.visible { display: flex; }
+.live-dot {
+  width: 7px; height: 7px;
+  background: #34C759;
+  border-radius: 50%;
+  animation: breathe 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes breathe {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%      { opacity:0.4; transform:scale(0.7); }
+}
+ 
+/* Theme toggle — pill style */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: 40px;
+  padding: 3px;
+  cursor: pointer;
+  transition: background 0.4s, border-color 0.4s;
+}
+.theme-option {
+  font-size: 13px;
+  padding: 5px 12px;
+  border-radius: 30px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--text-tertiary);
+  transition: all 0.25s var(--ease-out);
+  user-select: none;
+  line-height: 1;
+}
+.theme-option.active {
+  background: var(--surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+ 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   HERO  — shown when no content is loaded
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.hero {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  text-align: center;
+  animation: fadeUp 0.6s var(--ease-out) both;
+}
+ 
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(20px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+ 
+.hero-icon {
+  width: 80px; height: 80px;
+  background: var(--iron-ore);
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 28px;
+  box-shadow: 0 12px 40px rgba(34,36,34,0.25);
+  transition: background 0.4s, transform 0.3s var(--ease-spring);
+}
+[data-theme="dark"] .hero-icon {
+  background: var(--bg-raised);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  border: 1px solid var(--border-mid);
+}
+.hero-icon:hover { transform: scale(1.06); }
+ 
+.hero-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(32px, 5vw, 48px);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+  color: var(--text-primary);
+  margin-bottom: 14px;
+  transition: color 0.4s;
+}
+ 
+.hero-sub {
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  max-width: 360px;
+  line-height: 1.7;
+  transition: color 0.4s;
+}
+ 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   VIEWER  — shown when content is loaded
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.viewer-wrap {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  padding: 20px 20px 0;
+  gap: 12px;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  animation: fadeUp 0.5s var(--ease-out) both;
+}
+ 
+.viewer-wrap.visible { display: flex; }
+ 
+/* Document card */
+.doc-card {
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 520px;
+  transition: background 0.4s, border-color 0.4s, box-shadow 0.4s;
+}
+ 
+/* Toolbar inside card */
+.doc-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  height: 52px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-sunken);
+  flex-shrink: 0;
+  gap: 12px;
+  transition: background 0.4s, border-color 0.4s;
+}
+ 
+.toolbar-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+ 
+.doc-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 5px;
+  background: var(--iron-ore);
+  color: var(--ivory);
+  flex-shrink: 0;
+  transition: background 0.4s;
+}
+[data-theme="dark"] .doc-badge { background: var(--ivory); color: var(--iron-ore); }
+ 
+.doc-title-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.4s;
+}
+ 
+.doc-open-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-mid);
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s;
+  background: var(--surface);
+}
+.doc-open-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--border-mid);
+  background: var(--bg-raised);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-xs);
+}
+ 
+.viewer-frame {
+  flex: 1;
+  width: 100%;
+  border: none;
+  min-height: 480px;
+  display: block;
+  background: var(--bg-sunken);
+}
+ 
+/* Meta strip */
+.meta-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 4px 18px;
+  flex-wrap: wrap;
+}
+ 
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  padding: 5px 12px;
+  border-radius: 40px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-xs);
+  transition: all 0.4s;
+}
+.meta-item strong { color: var(--text-secondary); font-weight: 500; }
+ 
+.meta-note {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-style: italic;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 40px;
+  padding: 5px 14px;
+  box-shadow: var(--shadow-xs);
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.4s;
+}
+ 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   MODAL  — sheet style, Apple-inspired
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.modal-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.40);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 400;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  transition: opacity 0.3s;
+}
+ 
+@media (min-width: 640px) {
+  .modal-backdrop { align-items: center; padding: 20px; }
+}
+ 
+.modal-backdrop.open { display: flex; }
+ 
+.modal {
+  background: var(--bg-raised);
+  width: 100%;
+  max-width: 520px;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  overflow: hidden;
+  animation: sheetUp 0.38s var(--ease-out) both;
+  transition: background 0.4s, border-color 0.4s;
+}
+ 
+@media (min-width: 640px) {
+  .modal {
+    border-radius: var(--radius-xl);
+    border-bottom: 1px solid var(--border);
+    animation: modalIn 0.32s var(--ease-out) both;
+  }
+}
+ 
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes modalIn {
+  from { transform: translateY(16px) scale(0.97); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+ 
+/* Modal drag handle (mobile) */
+.modal-handle {
+  width: 36px; height: 4px;
+  background: var(--border-mid);
+  border-radius: 2px;
+  margin: 12px auto 0;
+  transition: background 0.4s;
+}
+ 
+@media (min-width: 640px) { .modal-handle { display: none; } }
+ 
+/* Modal header */
+.modal-header {
+  padding: 20px 24px 0;
+}
+.modal-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
+  margin-bottom: 4px;
+  transition: color 0.4s;
+}
+.modal-sub {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  transition: color 0.4s;
+}
+ 
+/* Segment control — content type */
+.segment {
+  display: flex;
+  background: var(--bg-sunken);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  gap: 2px;
+  margin: 20px 24px 0;
+  border: 1px solid var(--border);
+}
+.seg-btn {
+  flex: 1;
+  padding: 9px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: 'Geist', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all 0.22s var(--ease-out);
+}
+.seg-btn.active {
+  background: var(--surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+ 
+/* Modal body */
+.modal-body {
+  padding: 20px 24px 0;
+}
+ 
+/* Field */
+.field { margin-bottom: 16px; }
+.field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 7px;
+  transition: color 0.4s;
+}
+.field input,
+.field textarea {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--bg-sunken);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: 'Geist', system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--text-primary);
+  outline: none;
+  resize: none;
+  transition: border-color 0.2s, background 0.4s, color 0.4s;
+  -webkit-appearance: none;
+}
+.field input:focus,
+.field textarea:focus {
+  border-color: var(--border-mid);
+  background: var(--surface);
+}
+.field-hint {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 6px;
+  line-height: 1.6;
+  transition: color 0.4s;
+}
+ 
+/* PDF drop zone */
+.drop-zone {
+  border: 1.5px dashed var(--border-mid);
+  border-radius: var(--radius-md);
+  padding: 28px 16px;
+  text-align: center;
+  position: relative;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.drop-zone:hover { border-color: var(--text-secondary); background: var(--bg-sunken); }
+.drop-zone input[type="file"] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.drop-zone-icon { font-size: 30px; display: block; margin-bottom: 8px; }
+.drop-zone-label { font-size: 14px; font-weight: 500; color: var(--text-primary); display: block; margin-bottom: 2px; }
+.drop-zone-sub { font-size: 12px; color: var(--text-tertiary); }
+ 
+.pdf-chip {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-sunken);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-top: 10px;
+}
+.pdf-chip.visible { display: flex; }
+.pdf-chip-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pdf-chip-clear {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-tertiary); font-size: 18px; line-height: 1;
+  padding: 2px 4px; border-radius: 4px;
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+.pdf-chip-clear:hover { color: #ff3b30; }
+ 
+/* Modal footer */
+.modal-footer {
+  padding: 20px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+@media (min-width: 640px) {
+  .modal-footer { padding-bottom: 24px; }
+}
+ 
+.btn-publish {
+  width: 100%;
+  padding: 15px;
+  background: var(--iron-ore);
+  color: var(--ivory);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: 'Geist', system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s var(--ease-spring), box-shadow 0.2s;
+  box-shadow: 0 2px 12px rgba(34,36,34,0.30);
+}
+.btn-publish:hover { background: var(--black); box-shadow: 0 4px 20px rgba(0,0,0,0.25); }
+.btn-publish:active { transform: scale(0.97); }
+[data-theme="dark"] .btn-publish { background: var(--ivory); color: var(--iron-ore); box-shadow: 0 2px 12px rgba(0,0,0,0.40); }
+[data-theme="dark"] .btn-publish:hover { background: var(--white); }
+ 
+.btn-cancel {
+  width: 100%;
+  padding: 14px;
+  background: none;
+  border: 1.5px solid var(--border-mid);
+  border-radius: var(--radius-md);
+  font-family: 'Geist', system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-cancel:hover { color: var(--text-primary); border-color: var(--border-mid); background: var(--bg-sunken); }
+ 
+.btn-remove {
+  width: 100%;
+  padding: 12px;
+  background: none;
+  border: none;
+  font-family: 'Geist', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.btn-remove:hover { color: #ff3b30; }
+ 
+ 
+ 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TOAST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.toast {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  opacity: 0;
+  background: var(--iron-ore);
+  color: var(--ivory);
+  padding: 12px 22px;
+  border-radius: 40px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  z-index: 500;
+  white-space: nowrap;
+  box-shadow: var(--shadow-md);
+  transition: all 0.35s var(--ease-out);
+  pointer-events: none;
+}
+[data-theme="dark"] .toast { background: var(--ivory); color: var(--iron-ore); }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+ 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   MOBILE TWEAKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+@media (max-width: 600px) {
+  nav { padding: 0 18px; height: 58px; }
+  .wordmark-sub { display: none; }
+  .viewer-wrap { padding: 12px 12px 0; }
+  .doc-card { min-height: 360px; border-radius: var(--radius-lg); }
+  .viewer-frame { min-height: 320px; }
+  .meta-note { display: none; }
+  .fab { bottom: 20px; right: 16px; }
+}
+ 
+/* Safe area (iPhone notch) */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .modal-footer { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+  .fab { bottom: calc(24px + env(safe-area-inset-bottom)); }
+}
+ 
+</style>
 </head>
-
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <div class="logo">PTC</div>
-      <div class="titles">
-        <div class="title">Comms Telemetry</div>
-        <div class="subtitle">Counts only • No message content • Company dashboard</div>
+ 
+<!-- ══════════════════════════════════════════
+     NAV
+══════════════════════════════════════════ -->
+<nav>
+  <div class="nav-inner">
+    <div class="wordmark">
+      <div class="wordmark-top">Peachtree</div>
+      <div class="wordmark-sub">Town &amp; Country</div>
+    </div>
+ 
+    <div class="nav-controls">
+      <div class="live-pill" id="livePill">
+        <div class="live-dot"></div>
+        Live
+      </div>
+ 
+      <!-- Theme toggle -->
+      <div class="theme-toggle" onclick="toggleTheme()" role="switch" aria-label="Toggle theme">
+        <div class="theme-option" id="optLight">☀︎ Day</div>
+        <div class="theme-option" id="optDark">◗ Night</div>
       </div>
     </div>
-
-    <div class="controls">
-      <button id="btnIgnition" class="btn primary">SIGN IN</button>
-      <button id="btnRefresh" class="btn" disabled>REFRESH</button>
-      <button id="btnBaseline" class="btn" disabled>SET BASELINE</button>
-      <button id="btnAuto" class="btn" disabled>AUTO: OFF</button>
-      <button id="btnQuiet" class="btn" disabled>QUIET: OFF</button>
-      <button id="btnSignOut" class="btn" disabled>SIGN OUT</button>
+  </div>
+</nav>
+ 
+ 
+<!-- ══════════════════════════════════════════
+     HERO (empty state)
+══════════════════════════════════════════ -->
+<div class="hero" id="hero">
+  <div class="hero-icon">
+    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+      <rect x="6" y="4" width="24" height="29" rx="3.5" stroke="#F5F4EF" stroke-width="1.8"/>
+      <path d="M11 13h14M11 19h14M11 25h9" stroke="#F5F4EF" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <h1 class="hero-title">No presentation<br>loaded yet.</h1>
+  <p class="hero-sub">Your administrator will publish today's document here. Check back shortly or refresh the page.</p>
+</div>
+ 
+ 
+<!-- ══════════════════════════════════════════
+     VIEWER (loaded state)
+══════════════════════════════════════════ -->
+<div class="viewer-wrap" id="viewerWrap">
+  <div class="doc-card">
+    <div class="doc-toolbar">
+      <div class="toolbar-left">
+        <div class="doc-badge" id="docBadge">Slides</div>
+        <div class="doc-title-text" id="docTitleText">Today's Presentation</div>
+      </div>
+      <a href="#" id="docOpenLink" class="doc-open-btn" target="_blank">
+        Open ↗
+      </a>
     </div>
-  </header>
-
-  <main class="wrap">
-    <section class="layout">
-      <!-- LEFT -->
-      <aside class="panel">
-        <div class="panelHeader">
-          <div class="panelTitle">Status</div>
-        </div>
-        <div class="panelBody">
-          <div class="statusGrid">
-            <div class="stat">
-              <div class="statLabel">Driver</div>
-              <div class="statValue" id="driver">—</div>
-            </div>
-            <div class="stat">
-              <div class="statLabel">Last Update</div>
-              <div class="statValue" id="lastUpdate">—</div>
-            </div>
-            <div class="stat">
-              <div class="statLabel">Baseline</div>
-              <div class="statValue" id="baselineTime">—</div>
-            </div>
-            <div class="stat">
-              <div class="statLabel">Mode</div>
-              <div class="statValue" id="mode">IDLE</div>
-              <div class="statSub" id="pollMeta">POLL: IDLE • API: —</div>
-              <div class="statSub" id="quietMeta">QUIET MODE: OFF</div>
-            </div>
-          </div>
-
-          <div class="quickLinks">
-            <a class="linkBtn" id="link_outlook" target="_blank" rel="noreferrer">
-              <span>Outlook</span><span class="linkMeta">OPEN</span>
-            </a>
-            <a class="linkBtn" id="link_slack" target="_blank" rel="noreferrer">
-              <span>Slack</span><span class="linkMeta">OPEN</span>
-            </a>
-            <a class="linkBtn" id="link_hubspot" target="_blank" rel="noreferrer">
-              <span>HubSpot</span><span class="linkMeta">OPEN</span>
-            </a>
-            <a class="linkBtn" id="link_monday" target="_blank" rel="noreferrer">
-              <span>Monday</span><span class="linkMeta">OPEN</span>
-            </a>
-          </div>
-
-          <div class="scopeNote">
-            <b>Privacy:</b> reads <b>unread counts only</b> from Outlook folders. No subject lines, no bodies.
-            Slack/HubSpot/Monday are represented via mapped Outlook alert folders.
-          </div>
-        </div>
-      </aside>
-
-      <!-- RIGHT -->
-      <section class="panel">
-        <div class="dashHeaderRow">
-          <div class="dashHeaderTitle">
-            <div class="h1">Dashboard</div>
-            <div class="h2">Fast, readable monitoring for the whole firm</div>
-          </div>
-          <div class="badges">
-            <div class="badge">Counts only</div>
-            <div class="badge">Session storage</div>
-            <div class="badge">Mail.ReadBasic</div>
-          </div>
-        </div>
-
-        <div class="grid">
-          <!-- TOTAL -->
-          <article class="card total" id="card_total" data-key="total" data-status="idle" style="--p:0;">
-            <div class="cardHead">
-              <div class="nameStack">
-                <div class="cardName"><span class="dot"></span> TOTAL</div>
-                <div class="cardHint">All sources combined</div>
-              </div>
-              <div class="pill" id="status_total">IDLE</div>
-            </div>
-            <div class="cardBody">
-              <div class="big" id="val_total">—</div>
-              <div class="meta" id="meta_total">New since baseline: —</div>
-              <div class="bar"><div class="barFill"></div></div>
-
-              <div class="breakdown">
-                <div class="chip"><span>Outlook</span><b id="mini_outlook">—</b></div>
-                <div class="chip"><span>Slack</span><b id="mini_slack">—</b></div>
-                <div class="chip"><span>HubSpot</span><b id="mini_hubspot">—</b></div>
-                <div class="chip"><span>Monday</span><b id="mini_monday">—</b></div>
-              </div>
-            </div>
-          </article>
-
-          <!-- OUTLOOK -->
-          <article class="card outlook" id="card_outlook" data-key="outlook" data-status="idle" style="--p:0;">
-            <div class="cardHead">
-              <div class="nameStack">
-                <div class="cardName"><span class="dot"></span> OUTLOOK</div>
-                <div class="cardHint">Inbox unread</div>
-              </div>
-              <div class="pill" id="status_outlook">IDLE</div>
-            </div>
-            <div class="cardBody">
-              <div class="big" id="val_outlook">—</div>
-              <div class="meta" id="meta_outlook">Since baseline: —</div>
-              <div class="bar"><div class="barFill"></div></div>
-            </div>
-          </article>
-
-          <!-- SLACK -->
-          <article class="card slack" id="card_slack" data-key="slack" data-status="idle" style="--p:0;">
-            <div class="cardHead">
-              <div class="nameStack">
-                <div class="cardName"><span class="dot"></span> SLACK</div>
-                <div class="cardHint">Mapped folder unread</div>
-              </div>
-              <div class="pill" id="status_slack">IDLE</div>
-            </div>
-            <div class="cardBody">
-              <div class="big" id="val_slack">—</div>
-              <div class="meta" id="meta_slack">Since baseline: —</div>
-              <div class="bar"><div class="barFill"></div></div>
-            </div>
-          </article>
-
-          <!-- HUBSPOT -->
-          <article class="card hubspot" id="card_hubspot" data-key="hubspot" data-status="idle" style="--p:0;">
-            <div class="cardHead">
-              <div class="nameStack">
-                <div class="cardName"><span class="dot"></span> HUBSPOT</div>
-                <div class="cardHint">Mapped folder unread</div>
-              </div>
-              <div class="pill" id="status_hubspot">IDLE</div>
-            </div>
-            <div class="cardBody">
-              <div class="big" id="val_hubspot">—</div>
-              <div class="meta" id="meta_hubspot">Since baseline: —</div>
-              <div class="bar"><div class="barFill"></div></div>
-            </div>
-          </article>
-
-          <!-- MONDAY -->
-          <article class="card monday" id="card_monday" data-key="monday" data-status="idle" style="--p:0;">
-            <div class="cardHead">
-              <div class="nameStack">
-                <div class="cardName"><span class="dot"></span> MONDAY</div>
-                <div class="cardHint">Mapped folder unread</div>
-              </div>
-              <div class="pill" id="status_monday">IDLE</div>
-            </div>
-            <div class="cardBody">
-              <div class="big" id="val_monday">—</div>
-              <div class="meta" id="meta_monday">Since baseline: —</div>
-              <div class="bar"><div class="barFill"></div></div>
-            </div>
-          </article>
-        </div>
-      </section>
-    </section>
-
-    <div class="footerNote">
-      <b>How it works:</b> Outlook counts are read via Microsoft Graph folder unread counts. Slack/HubSpot/Monday are represented by Outlook alert folders.
-      <b>No message content is read.</b>
-    </div>
-  </main>
-
-  <script>
-    const CONFIG = {
-      tenantId: "bcfdd46a-c2dd-4e71-a9f8-5cd31816ff9e",
-      clientId: "cf321f12-ce1d-4067-b44e-05fafad8258d",
-
-      folders: {
-        slack:   { name: "PTC - Slack Alerts" },
-        hubspot: { name: "PTC - HubSpot Alerts" },
-        monday:  { name: "PTC - Monday Alerts" }
-      },
-
-      scale: {
-        max: { outlook: 300, slack: 100, hubspot: 100, monday: 100, total: 500 },
-        redline: { outlook: 200, slack: 30, hubspot: 30, monday: 30, total: 280 }
-      },
-
-      links: {
-        outlook: "https://outlook.office.com/mail/",
-        slack:   "https://app.slack.com/client/",
-        hubspot: "https://app.hubspot.com/",
-        monday:  "https://monday.com/"
-      },
-
-      autoRefreshSeconds: 60,
-
-      /* loud “ding” */
-      ding: {
-        enabled: true,
-        masterVolume: 1.0,  // louder
-        gain: 0.95,         // loud, but avoid harsh clipping
-        lengthMs: 180
+    <iframe class="viewer-frame" id="viewerFrame" allowfullscreen></iframe>
+  </div>
+ 
+  <div class="meta-strip" id="metaStrip">
+    <div class="meta-item">📅 &thinsp;<strong id="metaDate">—</strong></div>
+    <div class="meta-item">🕐 &thinsp;Updated <strong id="metaTime" style="margin-left:3px">—</strong></div>
+    <div class="meta-note" id="metaNote" style="display:none"></div>
+  </div>
+</div>
+ 
+ 
+<!-- Admin panel removed -->
+ 
+ 
+ 
+<!-- Admin button removed — edit HARDCODED_LINK in code to update -->
+ 
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+ 
+ 
+<script>
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   CONFIGURATION
+   ─────────────────────────────────────────────
+   To hardcode a permanent link, paste it below.
+   Leave as empty string '' to use the admin panel.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+const HARDCODED_LINK = 'https://drive.google.com/file/d/1dnv9ZBUDL3F7tVkVlQ_p2exVoBc8wOmg/view?usp=sharing';   // ← Google Drive link
+const HARDCODED_TITLE = '';  // ← optional title
+const HARDCODED_NOTE  = '';  // ← optional note for agents
+ 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   STATE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+const KEY = 'ptc_v2';
+const THEME_KEY = 'ptc_theme';
+let pdfData = null;
+let seg = 'google';
+ 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   THEME
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+function initTheme() {
+  const saved = localStorage.getItem(THEME_KEY)
+    || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  setTheme(saved);
+}
+ 
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme');
+  setTheme(cur === 'light' ? 'dark' : 'light');
+}
+ 
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem(THEME_KEY, t);
+  document.getElementById('optLight').classList.toggle('active', t === 'light');
+  document.getElementById('optDark').classList.toggle('active', t === 'dark');
+}
+ 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   EMBED HELPERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+function embedUrl(url) {
+  if (!url) return '';
+  // Google Slides
+  if (url.includes('docs.google.com/presentation'))
+    return url.split('/edit')[0].split('/pub')[0].split('/preview')[0] + '/embed?start=false&loop=false&delayms=5000&rm=minimal';
+  // Google Docs
+  if (url.includes('docs.google.com/document'))
+    return url.split('/edit')[0].split('/pub')[0] + '/preview';
+  // Google Sheets
+  if (url.includes('docs.google.com/spreadsheets'))
+    return url.split('/edit')[0].split('/pub')[0] + '/preview';
+  // Generic Google Drive file (PDF, DOCX, PPTX, XLSX, etc.)
+  // Extract file ID and use Google Drive preview viewer
+  const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveMatch) {
+    const fileId = driveMatch[1];
+    return 'https://drive.google.com/file/d/' + fileId + '/preview';
+  }
+  return url;
+}
+ 
+function docType(url, isPdf) {
+  if (isPdf) return 'PDF';
+  if (!url) return 'Doc';
+  if (url.includes('/presentation')) return 'Slides';
+  if (url.includes('/document'))     return 'Doc';
+  if (url.includes('/spreadsheets')) return 'Sheet';
+  if (url.includes('drive.google.com/file')) return 'File';
+  return 'File';
+}
+ 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   RENDER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+function render(data) {
+  if (!data) return;
+  const { url, pdfDataUrl, title, note, savedAt } = data;
+  const isPdf = !!pdfDataUrl;
+  const src   = isPdf ? pdfDataUrl : embedUrl(url);
+ 
+  document.getElementById('hero').style.display       = 'none';
+  document.getElementById('viewerWrap').classList.add('visible');
+  document.getElementById('livePill').classList.add('visible');
+ 
+  document.getElementById('viewerFrame').src     = src;
+  document.getElementById('docBadge').textContent = docType(url, isPdf);
+  document.getElementById('docTitleText').textContent = title || (isPdf ? 'Today\'s Document' : 'Today\'s Presentation');
+ 
+  const link = document.getElementById('docOpenLink');
+  link.href = isPdf ? pdfDataUrl : url;
+  if (isPdf) { link.download = title || 'document.pdf'; link.textContent = 'Download ↓'; }
+  else       { link.removeAttribute('download'); link.textContent = 'Open ↗'; }
+ 
+  const d = new Date(savedAt);
+  document.getElementById('metaDate').textContent = d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+  document.getElementById('metaTime').textContent = d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+ 
+  const noteEl = document.getElementById('metaNote');
+  if (note) { noteEl.textContent = '📝 ' + note; noteEl.style.display = ''; }
+  else { noteEl.style.display = 'none'; }
+}
+ 
+function clearView() {
+  document.getElementById('hero').style.display = '';
+  document.getElementById('viewerWrap').classList.remove('visible');
+  document.getElementById('livePill').classList.remove('visible');
+  document.getElementById('viewerFrame').src = '';
+}
+ 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   MODAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+function openModal() {
+  const raw = localStorage.getItem(KEY);
+  const hasContent = !!raw;
+  document.getElementById('removeBtn').style.display = hasContent ? '' : 'none';
+ 
+  if (raw) {
+    try {
+      const d = JSON.parse(raw);
+      document.getElementById('titleInput').value = d.title || '';
+      document.getElementById('noteInput').value  = d.note  || '';
+      if (d.pdfDataUrl) {
+        switchSeg('pdf');
+        pdfData = d.pdfDataUrl;
+        document.getElementById('pdfChipName').textContent = d.title || 'Loaded PDF';
+        document.getElementById('pdfChip').classList.add('visible');
+        document.getElementById('dropZone').style.opacity = '0.5';
+      } else {
+        switchSeg('google');
+        document.getElementById('linkInput').value = d.url || '';
       }
-    };
-
-    const GRAPH = "https://graph.microsoft.com/v1.0";
-    const SCOPES = ["Mail.ReadBasic", "User.Read"];
-
-    let msalApp;
-    let activeAccount = null;
-
-    let autoTimer = null;
-    let quietMode = false;
-
-    let audioCtx = null;
-    let audioUnlocked = false;
-
-    const $ = (id) => document.getElementById(id);
-    const nowStr = () => new Date().toLocaleString();
-    const clamp = (n,a,b) => Math.max(a, Math.min(b,n));
-    const pct = (value, max) => clamp((value || 0) / Math.max(1, max), 0, 1);
-
-    function quietKey(){
-      const id = activeAccount?.homeAccountId || "global";
-      return `ptc_comms_quiet_${id}`;
-    }
-    function loadQuiet(){
-      try{
-        const raw = localStorage.getItem(quietKey());
-        return raw ? JSON.parse(raw) : false;
-      }catch{ return false; }
-    }
-    function saveQuiet(v){
-      try{ localStorage.setItem(quietKey(), JSON.stringify(!!v)); }catch{}
-    }
-    function setQuietUI(){
-      $("btnQuiet").textContent = quietMode ? "QUIET: ON" : "QUIET: OFF";
-      $("btnQuiet").classList.toggle("toggled", !!quietMode);
-      $("quietMeta").textContent = quietMode ? "QUIET MODE: ON" : "QUIET MODE: OFF";
-    }
-
-    function setButtons(signedIn){
-      $("btnRefresh").disabled = !signedIn;
-      $("btnBaseline").disabled = !signedIn;
-      $("btnAuto").disabled = !signedIn;
-      $("btnQuiet").disabled = !signedIn;
-      $("btnSignOut").disabled = !signedIn;
-    }
-    function setMode(t){ $("mode").textContent = t; }
-    function setDriver(t){ $("driver").textContent = t || "—"; }
-    function setUpdateTime(t){ $("lastUpdate").textContent = t || "—"; }
-    function setPollMeta(t){ $("pollMeta").textContent = t; }
-
-    function baselineKey(){
-      const id = activeAccount?.homeAccountId || "anon";
-      return `ptc_comms_baseline_${id}`;
-    }
-    function getBaseline(){
-      try{
-        const raw = localStorage.getItem(baselineKey());
-        return raw ? JSON.parse(raw) : null;
-      }catch{ return null; }
-    }
-    function setBaseline(obj){
-      localStorage.setItem(baselineKey(), JSON.stringify(obj));
-    }
-    function setBaselineUI(){
-      const b = getBaseline();
-      $("baselineTime").textContent = b?.time ? new Date(b.time).toLocaleString() : "—";
-    }
-    function setBaselineFromCurrent(){
-      const current = {};
-      for (const k of ["outlook","slack","hubspot","monday"]){
-        const v = parseInt($(`val_${k}`).textContent, 10);
-        current[k] = Number.isFinite(v) ? v : 0;
-      }
-      setBaseline({ time: Date.now(), counts: current });
-      setBaselineUI();
-      refreshAll().catch(()=>{});
-    }
-
-    function setAppLinks(){
-      $("link_outlook").href = CONFIG.links.outlook;
-      $("link_slack").href   = CONFIG.links.slack;
-      $("link_hubspot").href = CONFIG.links.hubspot;
-      $("link_monday").href  = CONFIG.links.monday;
-    }
-
-    async function graphGet(path, token){
-      const res = await fetch(`${GRAPH}${path}`, { headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-      return res.json();
-    }
-    async function getToken(){
-      const req = { scopes: SCOPES, account: activeAccount };
-      try{
-        const r = await msalApp.acquireTokenSilent(req);
-        return r.accessToken;
-      }catch{
-        const r = await msalApp.acquireTokenPopup(req);
-        return r.accessToken;
-      }
-    }
-    async function getInboxUnread(token){
-      const data = await graphGet(`/me/mailFolders('inbox')?$select=unreadItemCount`, token);
-      return data.unreadItemCount ?? 0;
-    }
-    async function getFolderCandidates(token){
-      const [top, inboxKids] = await Promise.all([
-        graphGet(`/me/mailFolders?$select=displayName,id,unreadItemCount&$top=200`, token).catch(() => ({ value: [] })),
-        graphGet(`/me/mailFolders('inbox')/childFolders?$select=displayName,id,unreadItemCount&$top=200`, token).catch(() => ({ value: [] }))
-      ]);
-
-      const list = [...(top.value || []), ...(inboxKids.value || [])];
-      const seen = new Set();
-      const out = [];
-      for (const f of list){
-        if (!f?.id || seen.has(f.id)) continue;
-        seen.add(f.id);
-        out.push(f);
-      }
-      return out;
-    }
-    function findFolderCount(folders, name){
-      const target = (name || "").trim().toLowerCase();
-      const match = folders.find(f => (f.displayName || "").trim().toLowerCase() === target);
-      return match?.unreadItemCount ?? 0;
-    }
-
-    function computeTotals(c){
-      return (c.outlook||0)+(c.slack||0)+(c.hubspot||0)+(c.monday||0);
-    }
-    function computeDeltas(counts){
-      const b = getBaseline();
-      if (!b?.counts) return { deltas: null };
-
-      const deltas = {};
-      for (const k of ["outlook","slack","hubspot","monday"]){
-        const base = Number.isFinite(b.counts[k]) ? b.counts[k] : 0;
-        const cur  = Number.isFinite(counts[k]) ? counts[k] : 0;
-        deltas[k] = cur - base;
-      }
-      deltas.total = deltas.outlook + deltas.slack + deltas.hubspot + deltas.monday;
-      return { deltas };
-    }
-
-    function statusFor(value, redline){
-      const v = Number.isFinite(value) ? value : 0;
-      const warnAt = Math.ceil(redline * 0.60);
-
-      if (v >= redline) return { level: "bad",  label: "CRITICAL" };
-      if (v >= warnAt)  return { level: "warn", label: "ELEVATED" };
-      if (v > 0)        return { level: "ok",   label: "OK" };
-      return { level: "idle", label: "IDLE" };
-    }
-
-    function flashCard(card){
-      if (quietMode) return;
-      if (!card) return;
-      card.classList.remove("flash");
-      void card.offsetWidth;
-      card.classList.add("flash");
-      setTimeout(()=> card.classList.remove("flash"), 420);
-    }
-
-    function ensureAudio(){
-      if (!CONFIG.ding.enabled) return;
-      if (audioCtx) return;
-      const Ctx = window.AudioContext || window.webkitAudioContext;
-      if (!Ctx) return;
-      audioCtx = new Ctx();
-    }
-
-    async function unlockAudio(){
-      if (!CONFIG.ding.enabled) return;
-      ensureAudio();
-      if (!audioCtx) return;
-
-      try{
-        if (audioCtx.state === "suspended") await audioCtx.resume();
-        // Play near-silent blip to unlock on user gesture
-        const g = audioCtx.createGain();
-        g.gain.value = 0.0001;
-        g.connect(audioCtx.destination);
-
-        const o = audioCtx.createOscillator();
-        o.type = "sine";
-        o.frequency.value = 440;
-        o.connect(g);
-
-        const t = audioCtx.currentTime;
-        o.start(t);
-        o.stop(t + 0.03);
-
-        audioUnlocked = true;
-      }catch{
-        audioUnlocked = false;
-      }
-    }
-
-    function playDing(){
-      if (!CONFIG.ding.enabled) return;
-      if (quietMode) return;
-      ensureAudio();
-      if (!audioCtx || !audioUnlocked) return;
-
-      const now = audioCtx.currentTime;
-
-      const master = audioCtx.createGain();
-      master.gain.value = CONFIG.ding.masterVolume;
-      master.connect(audioCtx.destination);
-
-      // Main gain envelope (loud "ding")
-      const g = audioCtx.createGain();
-      g.connect(master);
-
-      const peak = Math.max(0.05, Math.min(1.0, CONFIG.ding.gain));
-      const len = Math.max(0.08, CONFIG.ding.lengthMs / 1000);
-
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(peak, now + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, now + len);
-
-      // Two-oscillator "ding" (bell-ish)
-      const o1 = audioCtx.createOscillator();
-      o1.type = "triangle";
-      o1.frequency.setValueAtTime(880, now);
-
-      const o2 = audioCtx.createOscillator();
-      o2.type = "sine";
-      o2.frequency.setValueAtTime(1320, now);
-
-      // Slight detune for richness
-      o2.detune.setValueAtTime(7, now);
-
-      o1.connect(g);
-      o2.connect(g);
-
-      o1.start(now);
-      o2.start(now);
-
-      o1.stop(now + len + 0.02);
-      o2.stop(now + len + 0.02);
-    }
-
-    const lastVals = { total:null, outlook:null, slack:null, hubspot:null, monday:null };
-    const lastCounts = { outlook:null, slack:null, hubspot:null, monday:null, total:null };
-
-    function setCard(key, value, delta, max, redline, isTotal=false){
-      const card = $(`card_${key}`);
-      const pill = $(`status_${key}`);
-      const valEl = $(`val_${key}`);
-      const metaEl = $(`meta_${key}`);
-
-      const v = Number.isFinite(value) ? value : 0;
-      const s = statusFor(v, redline);
-
-      if (card){
-        card.dataset.status = s.level;
-        card.style.setProperty("--p", pct(v, max));
-      }
-      if (pill) pill.textContent = s.label;
-      if (valEl) valEl.textContent = String(v);
-
-      if (metaEl){
-        if (delta == null){
-          metaEl.textContent = isTotal ? "New since baseline: —" : "Since baseline: —";
-        }else{
-          const sign = delta > 0 ? "+" : "";
-          metaEl.textContent = isTotal ? `New since baseline: ${sign}${delta}` : `Since baseline: ${sign}${delta}`;
-        }
-      }
-
-      if (lastVals[key] !== null && lastVals[key] !== v) flashCard(card);
-      lastVals[key] = v;
-    }
-
-    function updateMode(total){
-      const red = CONFIG.scale.redline.total;
-      if (total >= red) setMode("REDLINE");
-      else if (total >= Math.ceil(red * 0.55)) setMode("BUSY");
-      else if (total > 0) setMode("ACTIVE");
-      else setMode("IDLE");
-    }
-
-    function startAuto(){
-      if (autoTimer) return;
-      autoTimer = setInterval(() => refreshAll().catch(()=>{}), CONFIG.autoRefreshSeconds * 1000);
-      $("btnAuto").textContent = `AUTO: ${CONFIG.autoRefreshSeconds}s`;
-    }
-    function stopAuto(){
-      if (!autoTimer) return;
-      clearInterval(autoTimer);
-      autoTimer = null;
-      $("btnAuto").textContent = "AUTO: OFF";
-    }
-    function toggleAuto(){
-      if (autoTimer) stopAuto();
-      else startAuto();
-    }
-
-    function toggleQuiet(){
-      quietMode = !quietMode;
-      saveQuiet(quietMode);
-      setQuietUI();
-    }
-
-    async function refreshAll(){
-      setPollMeta("POLL: PULLING • API: —");
-      const t0 = performance.now();
-
-      try{
-        const token = await getToken();
-
-        const inboxCount = await getInboxUnread(token);
-        const folders = await getFolderCandidates(token);
-
-        const counts = {
-          outlook: inboxCount,
-          slack:   findFolderCount(folders, CONFIG.folders.slack.name),
-          hubspot: findFolderCount(folders, CONFIG.folders.hubspot.name),
-          monday:  findFolderCount(folders, CONFIG.folders.monday.name)
-        };
-        counts.total = computeTotals(counts);
-
-        // Ding only when any count increases vs last poll
-        const increased =
-          (lastCounts.total   != null && counts.total   > lastCounts.total)   ||
-          (lastCounts.outlook != null && counts.outlook > lastCounts.outlook) ||
-          (lastCounts.slack   != null && counts.slack   > lastCounts.slack)   ||
-          (lastCounts.hubspot != null && counts.hubspot > lastCounts.hubspot) ||
-          (lastCounts.monday  != null && counts.monday  > lastCounts.monday);
-
-        lastCounts.outlook = counts.outlook;
-        lastCounts.slack = counts.slack;
-        lastCounts.hubspot = counts.hubspot;
-        lastCounts.monday = counts.monday;
-        lastCounts.total = counts.total;
-
-        const { deltas } = computeDeltas(counts);
-
-        $("mini_outlook").textContent = String(counts.outlook);
-        $("mini_slack").textContent = String(counts.slack);
-        $("mini_hubspot").textContent = String(counts.hubspot);
-        $("mini_monday").textContent = String(counts.monday);
-
-        setCard("total", counts.total, deltas?.total ?? null, CONFIG.scale.max.total, CONFIG.scale.redline.total, true);
-        setCard("outlook", counts.outlook, deltas?.outlook ?? null, CONFIG.scale.max.outlook, CONFIG.scale.redline.outlook);
-        setCard("slack", counts.slack, deltas?.slack ?? null, CONFIG.scale.max.slack, CONFIG.scale.redline.slack);
-        setCard("hubspot", counts.hubspot, deltas?.hubspot ?? null, CONFIG.scale.max.hubspot, CONFIG.scale.redline.hubspot);
-        setCard("monday", counts.monday, deltas?.monday ?? null, CONFIG.scale.max.monday, CONFIG.scale.redline.monday);
-
-        updateMode(counts.total);
-        setUpdateTime(nowStr());
-
-        const ms = Math.round(performance.now() - t0);
-        setPollMeta(`POLL: LIVE • API: ${ms}ms`);
-
-        if (increased) playDing();
-      }catch(e){
-        console.error(e);
-        setMode("CHECK");
-        setUpdateTime(nowStr());
-        setPollMeta("POLL: ERROR • API: —");
-      }
-    }
-
-    function normalizeRedirectUri(){
-      let p = window.location.pathname || "/";
-      if (p.endsWith("index.html")) p = p.replace("index.html", "");
-      if (!p.endsWith("/")) p = p + "/";
-      return window.location.origin + p;
-    }
-
-    async function applySignedInState(){
-      setButtons(true);
-      setDriver(activeAccount?.username || "—");
-      setBaselineUI();
-
-      quietMode = loadQuiet();
-      setQuietUI();
-
-      // Start AUTO immediately on sign-in
-      startAuto();
-
-      // Pull immediately
-      await refreshAll();
-    }
-
-    async function signIn(){
-      const loginReq = { scopes: SCOPES };
-
-      // user gesture -> unlock loud ding
-      await unlockAudio();
-
-      await msalApp.handleRedirectPromise().catch(() => null);
-
-      const existing = msalApp.getAllAccounts();
-      if (existing?.length){
-        activeAccount = existing[0];
-        msalApp.setActiveAccount(activeAccount);
-        await applySignedInState();
-        return;
-      }
-
-      try{
-        const result = await msalApp.loginPopup(loginReq);
-        activeAccount = result.account;
-      }catch{
-        await msalApp.loginRedirect(loginReq);
-        return;
-      }
-
-      msalApp.setActiveAccount(activeAccount);
-      await applySignedInState();
-    }
-
-    async function signOut(){
-      const acc = activeAccount;
-      activeAccount = null;
-
-      stopAuto();
-
-      setButtons(false);
-      setDriver("—");
-      setUpdateTime("—");
-      setBaselineUI();
-      setMode("IDLE");
-      setPollMeta("POLL: IDLE • API: —");
-
-      quietMode = false;
-      setQuietUI();
-
-      for (const k of ["total","outlook","slack","hubspot","monday"]){
-        const card = $(`card_${k}`);
-        const pill = $(`status_${k}`);
-        const val = $(`val_${k}`);
-        const meta = $(`meta_${k}`);
-        if (card){ card.dataset.status = "idle"; card.style.setProperty("--p", 0); }
-        if (pill) pill.textContent = "IDLE";
-        if (val) val.textContent = "—";
-        if (meta) meta.textContent = (k === "total") ? "New since baseline: —" : "Since baseline: —";
-        lastVals[k] = null;
-      }
-      for (const k of ["mini_outlook","mini_slack","mini_hubspot","mini_monday"]){
-        $(k).textContent = "—";
-      }
-
-      lastCounts.outlook = lastCounts.slack = lastCounts.hubspot = lastCounts.monday = lastCounts.total = null;
-
-      if (acc){
-        await msalApp.logoutPopup({ account: acc }).catch(() => {});
-      }
-    }
-
-    window.addEventListener("load", async () => {
-      setAppLinks();
-
-      const waitMsal = async () => {
-        for (let i=0;i<60;i++){
-          if (window.msal && window.msal.PublicClientApplication) return true;
-          await new Promise(r => setTimeout(r, 50));
-        }
-        return false;
-      };
-      const ok = await waitMsal();
-      if (!ok) {
-        setMode("CHECK");
-        setPollMeta("POLL: MSAL LOAD FAIL • API: —");
-        return;
-      }
-
-      msalApp = new msal.PublicClientApplication({
-        auth: {
-          clientId: CONFIG.clientId,
-          authority: `https://login.microsoftonline.com/${CONFIG.tenantId}`,
-          redirectUri: normalizeRedirectUri()
-        },
-        cache: { cacheLocation: "sessionStorage" }
-      });
-
-      await msalApp.handleRedirectPromise().catch(()=>null);
-
-      $("btnIgnition").onclick = () => signIn().catch(console.error);
-      $("btnRefresh").onclick  = () => refreshAll().catch(console.error);
-      $("btnBaseline").onclick = () => setBaselineFromCurrent();
-      $("btnAuto").onclick     = () => toggleAuto();
-      $("btnQuiet").onclick    = () => toggleQuiet();
-      $("btnSignOut").onclick  = () => signOut().catch(console.error);
-
-      setButtons(false);
-      setDriver("—");
-      setUpdateTime("—");
-      setBaselineUI();
-      setMode("IDLE");
-      setPollMeta("POLL: IDLE • API: —");
-      $("quietMeta").textContent = "QUIET MODE: OFF";
-    });
-  </script>
+    } catch(e) {}
+  }
+ 
+  document.getElementById('modalBackdrop').classList.add('open');
+}
+ 
+function closeModal() {
+  document.getElementById('modalBackdrop').classList.remove('open');
+}
+ 
+function switchSeg(s) {
+  seg = s;
+  document.getElementById('secGoogle').style.display = s === 'google' ? '' : 'none';
+  document.getElementById('secPdf').style.display    = s === 'pdf'    ? '' : 'none';
+  document.getElementById('segGoogle').classList.toggle('active', s === 'google');
+  document.getElementById('segPdf').classList.toggle('active', s === 'pdf');
+}
+ 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   PDF
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+function onPdfSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    pdfData = e.target.result;
+    document.getElementById('pdfChipName').textContent = file.name;
+    document.getElementById('pdfChip').classList.add('visible');
+    document.getElementById('dropZone').style.opacity = '0.5';
+  };
+  reader.readAsDataURL(file);
+}
+ 
+function clearPdf() {
+  pdfData = null;
+  document.getElementById('pdfInput').value = '';
+  document.getElementById('pdfChip').classList.remove('visible');
+  document.getElementById('dropZone').style.opacity = '1';
+}
+ 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   PUBLISH / REMOVE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+function publish() {
+  const title = document.getElementById('titleInput').value.trim();
+  const note  = document.getElementById('noteInput').value.trim();
+ 
+  if (seg === 'pdf') {
+    if (!pdfData) { toast('Please select a PDF file'); return; }
+    const data = { pdfDataUrl: pdfData, title, note, savedAt: new Date().toISOString() };
+    localStorage.setItem(KEY, JSON.stringify(data));
+    render(data);
+    closeModal();
+    toast('PDF published');
+  } else {
+    const url = document.getElementById('linkInput').value.trim();
+    if (!url) { toast('Please paste a Google Drive link'); return; }
+    if (!url.includes('docs.google.com') && !url.includes('drive.google.com')) { toast('Please use a Google Drive link'); return; }
+    const data = { url, title, note, savedAt: new Date().toISOString() };
+    localStorage.setItem(KEY, JSON.stringify(data));
+    render(data);
+    closeModal();
+    toast('Presentation published');
+  }
+}
+ 
+function removeContent() {
+  if (!confirm('Remove the current document?')) return;
+  localStorage.removeItem(KEY);
+  clearView();
+  closeModal();
+  toast('Document removed');
+}
+ 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TOAST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2600);
+}
+ 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   INIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+// Admin modal removed
+ 
+initTheme();
+ 
+// If a hardcoded link is set, always use it
+if (HARDCODED_LINK) {
+  render({
+    url: HARDCODED_LINK,
+    title: HARDCODED_TITLE,
+    note: HARDCODED_NOTE,
+    savedAt: new Date().toISOString()
+  });
+} else {
+  // Otherwise load from localStorage
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) render(JSON.parse(raw));
+  } catch(e) {}
+}
+ 
+// Auto-refresh every 60s
+setInterval(() => {
+  if (HARDCODED_LINK) return;
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) render(JSON.parse(raw));
+  } catch(e) {}
+}, 60000);
+</script>
 </body>
 </html>
+ 
